@@ -1,0 +1,103 @@
+{
+  "stamp": {
+    "stampHash": "OOH-47FF8432533E6D68",
+    "pillar1_Contractor": {
+      "title": "ПОСТАВЩИК",
+      "organization": "ООО «МедиаАутдор Групп»",
+      "inn": "Не указан",
+      "specialistName": "Абдулазиз Каримов"
+    },
+    "pillar2_Location": {
+      "title": "ЛОКАЦИЯ",
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "gpsCoordinates": "55.792800, 37.543200",
+      "gpsAccuracy": "±5м"
+    },
+    "pillar3_Construction": {
+      "title": "КОНСТРУКЦИЯ",
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lighting": "LED прожекторы"
+    },
+    "pillar4_DateTime": {
+      "title": "ДАТА И ВРЕМЯ",
+      "date": "09.09.2026",
+      "time": "07:45:31",
+      "timeZone": "MSK (UTC+3)",
+      "realtimeVerified": true
+    },
+    "watermarkText": "OOH SDIP REAL-TIME STREAM • ООО «МедиаАутдор Групп» • 09.09.2026 07:45:31 • HASH: 47FF8432533E6D68"
+  },
+  "compliance": {
+    "isFullyCompliant": false,
+    "overallStatus": "DEVIATION_DETECTED",
+    "matchedConstruction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37",
+      "side": "Сторона А",
+      "formatSize": "3.0 x 6.0 м",
+      "lightingType": "LED прожекторы",
+      "latitude": 55.751244,
+      "longitude": 37.618423,
+      "activeCampaign": "Текущая кампания",
+      "toleranceMeters": 300
+    },
+    "checks": [
+      {
+        "id": "CONSTRUCTION_REGISTRY",
+        "label": "Реестр конструкций КАМ",
+        "passed": true,
+        "severity": "INFO",
+        "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+      },
+      {
+        "id": "CONSTRUCTION_SIDE",
+        "label": "Соответствие стороны размещения",
+        "passed": true,
+        "severity": "INFO",
+        "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+      },
+      {
+        "id": "GEO_PROXIMITY",
+        "label": "GPS-привязка к координатам объекта",
+        "passed": false,
+        "severity": "WARNING",
+        "deviationMeters": 6595,
+        "toleranceMeters": 300,
+        "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+      },
+      {
+        "id": "MASTER_CRITERIA",
+        "label": "Файл требований и критериев КАМ",
+        "passed": true,
+        "severity": "INFO",
+        "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+      }
+    ]
+  },
+  "mediaQuality": {
+    "valid": true,
+    "mediaType": "image/jpeg",
+    "sizeBytes": 28,
+    "sizeFormatted": "0.0 КБ",
+    "resolution": "1280x720 (HD)",
+    "sharpnessScore": "89%",
+    "exposureQuality": "NORMAL_DAYLIGHT",
+    "aspectRatio": "16:9",
+    "isAcceptable": true,
+    "verdict": "PASSED_QUALITY_CHECKS"
+  },
+  "realTime": {
+    "isRealTime": true,
+    "ageSeconds": 0,
+    "validSource": true,
+    "serverTimestamp": "2026-09-09T07:45:31.956Z",
+    "verifiedAt": "2026-09-09T07:45:31.956Z"
+  },
+  "persistedFolder": "ООО_МедиаАутдор_Групп/2026-09",
+  "persistedFileName": "BB-MOW-0104___________20260909074531.jpg"
+}

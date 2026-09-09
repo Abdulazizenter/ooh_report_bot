@@ -49,7 +49,19 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
     captureSource: 'gallery_picker'
   });
   assert.strictEqual(invalidCheck.isRealTime, false, 'Stale gallery photo must be rejected');
-  console.log('✓ MediaAnalysisEngine real-time rejection passed');
+
+  // Senior Computer Vision Inspector Check (missing photo -> REJECTED with detected_issues)
+  const emptyInspection = MediaAnalysisEngine.inspectFieldReport({ mediaBase64: '' });
+  assert.strictEqual(emptyInspection.status, 'REJECTED');
+  assert.ok(emptyInspection.detected_issues.length > 0);
+
+  // Valid photo payload -> APPROVED
+  const dummyData = 'data:image/jpeg;base64,' + 'A'.repeat(25000);
+  const validInspection = MediaAnalysisEngine.inspectFieldReport({ mediaBase64: dummyData });
+  assert.strictEqual(validInspection.status, 'APPROVED');
+  assert.strictEqual(validInspection.detected_issues.length, 0);
+
+  console.log('✓ MediaAnalysisEngine real-time rejection & CV inspection passed');
 }
 
 // 3. WatermarkStampEngine Test
