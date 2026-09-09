@@ -1,0 +1,101 @@
+[
+  {
+    "contractorId": "cnt_01",
+    "contractorName": "ООО «МедиаАутдор Групп»",
+    "inn": "7701928341",
+    "kamName": "Елена Соколова",
+    "kamPhone": "+7 (495) 789-01-23",
+    "kamEmail": "e.sokolova@mediaoutdoor.ru",
+    "lastUpdated": "2026-09-09T07:40:30.485Z",
+    "masterRequirementFile": {
+      "fileName": "specs_september.zip",
+      "fileType": "application/octet-stream",
+      "fileSize": 10240,
+      "uploadedAt": "2026-09-09T07:40:30.485Z",
+      "uploadedBy": "Елена Соколова",
+      "criteriaSummary": "Фронтальный план, 100% читаемость",
+      "status": "verified",
+      "engineChecks": {
+        "valid": true,
+        "fileType": "ZIP_ARCHIVE",
+        "fileSize": 10240,
+        "fileSizeFormatted": "0.01 МБ",
+        "archiveIntegrity": "VERIFIED_CRC32_OK",
+        "extractedRulesCount": 6,
+        "rules": [
+          "Фронтальный угол съемки (угол отклонения не более 15°)",
+          "100% видимость рекламного поля без перекрытия кронами деревьев",
+          "Обязательная фиксация включенной подсветки в темное время суток",
+          "Запрет загрузки из галереи устройства (только живой поток камеры)"
+        ]
+      }
+    },
+    "constructions": [
+      {
+        "code": "BB-MOW-0104",
+        "type": "Билборд 3х6 м",
+        "city": "Москва",
+        "address": "Ленинградский пр-кт, 37",
+        "side": "Сторона А",
+        "formatSize": "3.0 x 6.0 м",
+        "lightingType": "LED прожекторы",
+        "latitude": 55.751244,
+        "longitude": 37.618423,
+        "activeCampaign": "Текущая кампания",
+        "toleranceMeters": 300
+      }
+    ]
+  },
+  {
+    "contractorId": "cnt_02",
+    "contractorName": "ООО «Русс Аутдор Монтаж»",
+    "inn": "7722334455",
+    "kamName": "Сергей Волков (КАМ)",
+    "kamPhone": "+7 (495) 660-11-22",
+    "kamEmail": "s.volkov@russoutdoor.ru",
+    "lastUpdated": "2026-09-08T16:00:00.000Z",
+    "masterRequirementFile": {
+      "fileName": "TehZadanie_Makety_RussOutdoor_09_2026.pdf",
+      "fileType": "application/pdf",
+      "fileSize": 2450100,
+      "uploadedAt": "2026-09-08T16:00:00.000Z",
+      "uploadedBy": "Сергей Волков (КАМ)",
+      "criteriaSummary": "Запрет складок баннера, съемка строго с осевой линии дороги, фиксация номерной плашки",
+      "status": "verified",
+      "engineChecks": {
+        "pdfIntegrity": true,
+        "mockupIncluded": true,
+        "criteriaCount": 3,
+        "status": "APPROVED_BY_ENGINE"
+      }
+    },
+    "constructions": [
+      {
+        "code": "BB-MOW-0588",
+        "type": "Билборд 3х6 м",
+        "city": "Москва",
+        "address": "Варшавское шоссе, 125",
+        "side": "Сторона А (в центр)",
+        "formatSize": "3.0 x 6.0 м",
+        "lightingType": "LED прожекторы",
+        "latitude": 55.6291,
+        "longitude": 37.6184,
+        "activeCampaign": "ВТБ — Ипотека 2026",
+        "toleranceMeters": 250
+      },
+      {
+        "code": "SS-MOW-0112",
+        "type": "Суперсайт 15х5 м",
+        "city": "Москва",
+        "address": "МКАД 32-й км, внутренняя сторона",
+        "side": "Сторона Б (против хода)",
+        "formatSize": "15.0 x 5.0 м",
+        "lightingType": "LED подсветка",
+        "latitude": 55.5782,
+        "longitude": 37.6012,
+        "activeCampaign": "Авито Недвижимость",
+        "toleranceMeters": 350
+      }
+    ]
+  }
+]

@@ -4,168 +4,1668 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>OOH Promo Hub</title>
-  <meta name="description" content="Telegram Web App promo hub for OOH report submissions and mini-game attempts">
+  <meta name="description" content="Платформа мониторинга наружной рекламы: профили КАМ и полевого специалиста, фиксация только в реальном времени с камеры (галерея заблокирована), движки автоматической проверки соответствия критериям и авто-сохранение в папки поставщиков по месяцам">
   <meta property="og:title" content="OOH Promo Hub">
-  <meta property="og:description" content="Telegram Web App promo hub for OOH report submissions and mini-game attempts">
+  <meta property="og:description" content="Платформа мониторинга наружной рекламы: профили КАМ и полевого специалиста, фиксация только в реальном времени с камеры (галерея заблокирована), движки автоматической проверки соответствия критериям и авто-сохранение в папки поставщиков по месяцам">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      background-color: #0d0d0f;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0b0c10;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
-    .hero-card {
-      background: linear-gradient(145deg, #c3141e 0%, #300508 65%, #180304 100%);
-      box-shadow: 0 10px 25px -5px rgba(195, 20, 30, 0.4);
-    }
     .glass-card {
-      background: rgba(26, 26, 31, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: #14151b;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+    input, select, textarea {
+      background-color: #1a1c24 !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      color: #f3f4f6 !important;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #ef4444 !important;
+      outline: none !important;
+      box-shadow: 0 0 0 1px #ef4444 !important;
+    }
+    .hud-scanner {
+      box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.25);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2d3139;
+      border-radius: 4px;
     }
   </style>
 </head>
-<body class="text-white min-h-screen pb-28 px-4 pt-3 select-none">
+<body class="min-h-screen pb-20 px-3 sm:px-4 pt-3 select-none">
 
-  <!-- ВЕРХНЯЯ ПАНЕЛЬ: Статус и Язык -->
-  <div class="flex items-center justify-between gap-2 mb-3">
-    <div class="flex items-center gap-2 bg-[#1c1c22] px-3 py-1.5 rounded-full border border-white/5">
-      <span class="text-xs text-red-500 font-extrabold">ТУР 1</span>
-      <span class="text-[11px] text-neutral-300 font-bold uppercase tracking-tight">1 ОТЧЕТ = 1 ШАНС</span>
-    </div>
-    <div class="flex items-center gap-1 bg-[#1c1c22] px-3 py-1.5 rounded-full border border-white/5 text-xs text-neutral-300 font-medium cursor-pointer">
-      <span>🌐</span>
-      <span>RU</span>
-    </div>
-  </div>
-
-  <!-- ГЛАВНАЯ ГРАДИЕНТНАЯ КАРТОЧКА (HERO CARD) -->
-  <div class="hero-card rounded-3xl p-5 mb-4 relative overflow-hidden">
-    <!-- Фоновый спорткар / графика -->
-    <div class="absolute -right-4 top-10 opacity-20 text-8xl pointer-events-none">🏎️</div>
-
-    <p class="text-[11px] font-black uppercase tracking-wider text-red-200/90 mb-3" id="user-display-name">
-      ЗДРАВСТВУЙТЕ, АБДУЛАЗИЗ
-    </p>
-
-    <div class="flex items-center gap-3 mb-2">
-      <div class="bg-amber-400 text-black p-2 rounded-xl text-lg font-black leading-none">⚡</div>
-      <div class="flex items-baseline gap-2">
-        <span class="text-4xl font-black tracking-tight" id="attempts-count">0</span>
-        <span class="text-xs uppercase font-extrabold tracking-wide text-white/90">ПОПЫТКИ В МИНИ-ИГРЕ</span>
+  <!-- TOP APP BAR -->
+  <header id="app-header" class="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-white/5">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-500 font-black text-sm">
+        OOH
       </div>
-    </div>
-    <p class="text-[11px] text-white/70 mb-4">1 отчет в системе = 1 попытка. Доступно ежедневно.</p>
-
-    <!-- Шаги -->
-    <div class="grid grid-cols-3 gap-2 mb-4">
-      <div class="bg-black/30 backdrop-blur rounded-xl py-2 px-1 text-center border border-white/10">
-        <span class="text-[10px] font-extrabold text-neutral-200">1 СНИМИТЕ</span>
-      </div>
-      <div class="bg-black/30 backdrop-blur rounded-xl py-2 px-1 text-center border border-white/10">
-        <span class="text-[10px] font-extrabold text-neutral-200">2 СКАН</span>
-      </div>
-      <div class="bg-black/30 backdrop-blur rounded-xl py-2 px-1 text-center border border-white/10">
-        <span class="text-[10px] font-extrabold text-neutral-200">3 СТАТУС</span>
-      </div>
-    </div>
-
-    <!-- Пунктирный алерт -->
-    <div class="border border-dashed border-red-400/40 bg-black/25 rounded-2xl p-3.5 flex items-center justify-between">
       <div>
-        <p class="text-xs font-black uppercase tracking-wide text-white">НЕТ ПОПЫТОК ДЛЯ ИГРЫ</p>
-        <p class="text-[10px] text-red-200/70 mt-0.5 max-w-[210px]">Отсканируйте QR-код конструкции для начисления.</p>
-      </div>
-      <div class="text-xl text-red-300">🚩</div>
-    </div>
-  </div>
-
-  <!-- БЛОК СТАТИСТИКИ ШАНСОВ -->
-  <div class="glass-card rounded-2xl p-4 mb-3 flex items-center justify-between cursor-pointer active:scale-[0.99] transition">
-    <div class="flex items-center gap-3">
-      <div class="text-red-500 text-2xl">⛽</div>
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="text-lg font-black">0/2</span>
-          <span class="text-xs font-extrabold text-neutral-300 uppercase">ШАНСЫ ×2</span>
-        </div>
-        <p class="text-[10px] text-neutral-400 mt-0.5">Еще 2 проверки до двойного коэффициента</p>
+        <h1 class="text-xs font-black uppercase tracking-wider text-white">OOH SDIP • Платформа Мониторинга</h1>
+        <p class="text-[10px] text-neutral-400" id="user-display-name">Подрядчик: Авторизован</p>
       </div>
     </div>
-    <div class="text-neutral-500 text-sm font-bold">➔</div>
-  </div>
-
-  <!-- СЕТКА КНОПОК МЕНЮ -->
-  <div class="grid grid-cols-2 gap-3 mb-6">
-    <div class="glass-card rounded-2xl p-4 cursor-pointer active:scale-95 transition">
-      <div class="text-red-400 text-xl mb-2">❓</div>
-      <p class="text-xs font-black uppercase">КАК УЧАСТВОВАТЬ</p>
-      <p class="text-[10px] text-neutral-400 mt-1">краткая механика</p>
-    </div>
-    <div class="glass-card rounded-2xl p-4 cursor-pointer active:scale-95 transition">
-      <div class="text-red-400 text-xl mb-2">🎟️</div>
-      <p class="text-xs font-black uppercase">МОИ ШАНСЫ</p>
-      <p class="text-[10px] text-neutral-400 mt-1">0 активно</p>
-    </div>
-  </div>
-
-  <!-- ПЛАВАЮЩАЯ НАВИГАЦИЯ С КНОПКОЙ СКАНЕРА -->
-  <div class="fixed bottom-4 left-4 right-4 z-50">
-    <div class="bg-[#121216]/95 backdrop-blur-md border border-white/10 rounded-3xl h-16 flex items-center justify-around px-4 relative shadow-2xl">
-      
-      <!-- Главная -->
-      <button class="flex flex-col items-center gap-1 text-red-500">
-        <span class="text-xl">🏠</span>
+    <div class="flex items-center gap-1.5">
+      <!-- Profile Switcher Button -->
+      <button id="btn-profile-badge" onclick="openProfileSwitchModal()" class="flex items-center gap-1.5 bg-[#181a24] hover:bg-[#222533] border border-white/10 text-neutral-200 px-2 py-1.5 rounded-xl text-[11px] font-semibold active:scale-95 transition" title="Сменить пользователя (КАМ, Полевой специалист, Админ)">
+        <span id="header-user-role-badge" class="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30">АДМИН</span>
+        <span id="header-user-name" class="font-bold text-white max-w-[110px] truncate sm:max-w-none">Администратор</span>
+        <span class="text-neutral-400 text-[10px]">▼</span>
       </button>
 
-      <!-- Центральная кнопка СКАН -->
-      <div class="relative -top-5">
-        <button onclick="triggerScanner()" class="w-16 h-16 rounded-full bg-gradient-to-tr from-red-600 to-rose-500 flex flex-col items-center justify-center shadow-lg shadow-red-600/50 border-4 border-[#0d0d0f] active:scale-90 transition">
-          <span class="text-xl">📷</span>
-          <span class="text-[9px] font-black tracking-wider uppercase mt-0.5">СКАН</span>
+      <button id="btn-export-csv" onclick="exportReportsCSV()" class="flex items-center gap-1 bg-[#1e2029] hover:bg-[#252834] text-neutral-200 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs font-semibold active:scale-95 transition" title="Выгрузить в Excel / CSV">
+        <span>📥</span>
+        <span class="hidden sm:inline">CSV</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- QUICK STATS BAR -->
+  <div id="stats-banner" class="grid grid-cols-4 gap-2 mb-3">
+    <div class="glass-card rounded-xl p-2 text-center">
+      <span class="text-[9px] font-bold text-neutral-400 block">Отчетов</span>
+      <span id="stat-total" class="text-base font-black text-white">0</span>
+    </div>
+    <div class="glass-card rounded-xl p-2 text-center">
+      <span class="text-[9px] font-bold text-neutral-400 block">Поставщики</span>
+      <span id="stat-contractors" class="text-base font-black text-red-400">0</span>
+    </div>
+    <div class="glass-card rounded-xl p-2 text-center">
+      <span class="text-[9px] font-bold text-neutral-400 block">Конструкции</span>
+      <span id="stat-constructions" class="text-base font-black text-amber-400">0</span>
+    </div>
+    <div class="glass-card rounded-xl p-2 text-center">
+      <span class="text-[9px] font-bold text-neutral-400 block">Проверено</span>
+      <span id="stat-verified" class="text-base font-black text-emerald-400">0</span>
+    </div>
+  </div>
+
+  <!-- MAIN TAB SWITCHER (4 FOCUSED WORKFLOW TABS) -->
+  <div id="tab-nav" class="grid grid-cols-4 gap-1 p-1 bg-[#15161e] border border-white/10 rounded-2xl mb-3 text-[11px] font-bold">
+    <button id="tab-btn-webbot" onclick="switchTab('webbot')" class="py-2 rounded-xl text-center transition bg-red-600 text-white shadow truncate px-1">
+      📱 Веб-бот
+    </button>
+    <button id="tab-btn-kam" onclick="switchTab('kam')" class="py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+      💼 КАМ
+    </button>
+    <button id="tab-btn-archive" onclick="switchTab('archive')" class="py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+      📁 Архивы
+    </button>
+    <button id="tab-btn-reports" onclick="switchTab('reports')" class="py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+      📋 Реестр
+    </button>
+  </div>
+
+  <!-- HIDDEN ALIAS FOR LEGACY IDS -->
+  <div class="hidden" id="tab-btn-new"></div>
+  <div class="hidden" id="tab-btn-profile"></div>
+  <div class="hidden" id="tab-content-new"></div>
+  <div class="hidden" id="tab-content-profile"><div id="profile-container"></div></div>
+
+  <!-- ============================================================ -->
+  <!-- TAB 1: WEBBOT (ПОЛЕВОЙ СПЕЦИАЛИСТ • СЪЕМКА В РЕАЛЬНОМ ВРЕМЕНИ) -->
+  <!-- ============================================================ -->
+  <section id="tab-content-webbot" class="space-y-3">
+    <!-- Real-Time Enforcement Banner -->
+    <div class="bg-gradient-to-r from-red-950/80 to-[#181a24] border border-red-500/30 rounded-2xl p-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-black text-white uppercase tracking-wider">Веб-бот OOH • Реальное время</span>
+            <span class="text-[9px] bg-red-500/20 text-red-300 font-bold px-1.5 py-0.5 rounded border border-red-500/40">ГАЛЕРЕЯ ЗАБЛОКИРОВАНА</span>
+          </div>
+          <p class="text-[10px] text-neutral-300 mt-0.5">
+            Отчеты принимаются строго с камеры устройства. Бот впечатывает дату, локацию, водяной знак и сохраняет в папку месяца.
+          </p>
+        </div>
+      </div>
+      <span class="text-xl">📸</span>
+    </div>
+
+    <!-- Step 1: Select Construction from Pre-filled KAM List -->
+    <div class="glass-card rounded-2xl p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-black uppercase tracking-wider text-white">1. Выбор конструкции из реестра КАМ</span>
+        <span class="text-[10px] text-amber-400 font-mono" id="webbot-supplier-label">ООО «МедиаАутдор Групп»</span>
+      </div>
+
+      <div class="flex gap-1.5">
+        <select id="webbot-const-select" onchange="onWebbotConstSelect(this.value)" class="flex-1 text-xs rounded-xl px-2.5 py-2 border font-medium">
+          <option value="">-- Выберите конструкцию по адресу/коду --</option>
+        </select>
+        <button type="button" onclick="detectNearestConstruction()" class="bg-[#1f2230] hover:bg-[#282c3f] border border-white/10 text-sky-300 text-[10px] font-bold px-2.5 py-2 rounded-xl flex items-center gap-1 active:scale-95 transition" title="Найти ближайший щит по вашему GPS">
+          <span>🎯</span><span class="hidden sm:inline">Ближайшая</span>
         </button>
       </div>
 
-      <!-- Профиль -->
-      <button class="flex flex-col items-center gap-1 text-neutral-400">
-        <span class="text-xl">👤</span>
-      </button>
+      <!-- Selected Construction Details Preview -->
+      <div id="webbot-const-preview" class="bg-black/40 rounded-xl p-2.5 border border-white/5 text-[11px] space-y-1">
+        <div class="flex justify-between items-center">
+          <span id="wb-const-code" class="font-mono font-black text-amber-300 text-xs">BB-MOW-0104</span>
+          <span id="wb-const-type" class="text-neutral-300">Билборд 3х6 м</span>
+        </div>
+        <p id="wb-const-addr" class="text-neutral-200">г. Москва, Ленинградский пр-кт, 37 к2</p>
+        <div class="flex justify-between items-center text-[10px] text-neutral-400 pt-1 border-t border-white/5">
+          <span id="wb-const-side">Сторона: А (в центр)</span>
+          <span id="wb-const-light">Подсветка: LED прожекторы</span>
+        </div>
+      </div>
+    </div>
 
+    <!-- Step 2: Live Viewfinder / Camera Capture Stream (NO GALLERY!) -->
+    <div class="glass-card rounded-2xl p-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          <span class="text-[11px] font-black uppercase tracking-wider text-white">2. Прямой видоискатель камеры</span>
+        </div>
+        <span class="text-[10px] text-emerald-400 font-mono font-bold" id="webbot-live-clock">MSK 10:32:00</span>
+      </div>
+
+      <!-- Live Video Viewfinder Container with HUD Overlay -->
+      <div class="relative rounded-2xl overflow-hidden bg-black aspect-[16/10] sm:aspect-[16/9] border border-white/10 hud-scanner flex items-center justify-center">
+        <!-- Live Video Element -->
+        <video id="webbot-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+        <!-- Fallback / Preview Canvas (frozen on snap) -->
+        <canvas id="webbot-canvas" class="hidden w-full h-full object-cover absolute inset-0"></canvas>
+
+        <!-- Initial Placeholder if camera not yet active -->
+        <div id="webbot-camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-[#0d0f15]/90 space-y-2">
+          <span class="text-3xl">📷</span>
+          <p class="text-xs font-bold text-white">Камера реального времени</p>
+          <p class="text-[10px] text-neutral-400 max-w-xs">
+            Нажмите кнопку ниже для включения объектива. Выбор из галереи технически заблокирован.
+          </p>
+          <button type="button" onclick="startLiveCamera()" class="bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-red-900/40 active:scale-95 transition flex items-center gap-1.5">
+            <span>⚡</span><span>Включить камеру</span>
+          </button>
+        </div>
+
+        <!-- HUD Live Overlay Elements -->
+        <div class="absolute top-2.5 left-2.5 right-2.5 flex justify-between items-start pointer-events-none text-[10px]">
+          <div class="bg-black/75 backdrop-blur px-2 py-1 rounded-lg border border-white/10 font-mono text-emerald-400 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span id="hud-gps-coords">GPS: 55.7928, 37.5432 (±4м)</span>
+          </div>
+          <div class="bg-black/75 backdrop-blur px-2 py-1 rounded-lg border border-red-500/40 font-mono text-red-300 font-bold">
+            🔴 LIVE STREAM
+          </div>
+        </div>
+
+        <!-- Watermark Preview Overlay at bottom of camera -->
+        <div class="absolute bottom-2 left-2 right-2 pointer-events-none bg-black/85 backdrop-blur p-2 rounded-xl border border-white/10 text-[9px] font-mono text-neutral-300 flex justify-between items-center">
+          <div>
+            <span class="text-red-400 font-bold block">SDIP OOH REAL-TIME WATERMARK</span>
+            <span id="hud-watermark-line">ООО «МедиаАутдор Групп» • BB-MOW-0104</span>
+          </div>
+          <span class="text-amber-400 font-bold" id="hud-live-timestamp">09.09.2026 10:32</span>
+        </div>
+      </div>
+
+      <!-- Hidden Hardware Camera Fallback (strictly capture="environment" to block gallery on mobile) -->
+      <input type="file" id="webbot-hardware-camera-input" accept="image/*,video/*" capture="environment" class="hidden" onchange="handleHardwareCameraCapture(event)">
+
+      <!-- Camera Action Buttons -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" id="btn-snap-camera" onclick="captureLiveFrameAndSubmit()" class="bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs py-3 px-3 rounded-xl shadow-lg shadow-red-900/40 flex items-center justify-center gap-2 active:scale-95 transition">
+          <span class="text-base">📸</span>
+          <span>Зафиксировать и отправить</span>
+        </button>
+
+        <button type="button" onclick="triggerHardwareCameraFallback()" class="bg-[#1e2029] hover:bg-[#272b38] text-neutral-200 border border-white/10 font-bold text-xs py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition">
+          <span>📱</span>
+          <span>Аппаратная камера</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Execution Status Card (Engines Response & Folder Archival) -->
+    <div id="webbot-result-card" class="hidden glass-card rounded-2xl p-3.5 space-y-2.5 border-emerald-500/40 bg-gradient-to-br from-[#101915] to-[#12141c]">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center border border-emerald-500/40">✓</span>
+          <span class="text-xs font-black text-white uppercase">Отчет проверен и сохранен</span>
+        </div>
+        <span id="wb-res-time" class="text-[10px] text-emerald-400 font-mono">10:32:05</span>
+      </div>
+
+      <!-- Engines Checks Summary -->
+      <div class="grid grid-cols-2 gap-1.5 text-[10px]">
+        <div class="bg-black/30 p-2 rounded-xl border border-white/5">
+          <span class="text-neutral-400 block">Движок соответствия:</span>
+          <span id="wb-res-compliance" class="font-bold text-emerald-400">✓ ТЗ КАМ совпадает 100%</span>
+        </div>
+        <div class="bg-black/30 p-2 rounded-xl border border-white/5">
+          <span class="text-neutral-400 block">Движок медиа-анализа:</span>
+          <span id="wb-res-quality" class="font-bold text-sky-400">✓ Четкость 89% (HD)</span>
+        </div>
+      </div>
+
+      <!-- Monthly Folder Path Notification -->
+      <div class="bg-[#181d28] p-2.5 rounded-xl border border-sky-500/20 text-xs">
+        <span class="text-[10px] text-sky-400 font-bold block uppercase tracking-wider">📁 Сохранено в папку месяца поставщика:</span>
+        <p id="wb-res-folder" class="font-mono text-[11px] text-white font-bold mt-0.5 break-all">/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104_SideA_20260909_103205.jpg</p>
+        <p class="text-[9px] text-neutral-400 mt-1 font-mono" id="wb-res-hash">ШТАМП OOH: OOH-9A4B8C1D • ВОДЯНЫЕ ЗНАКИ НАЛОЖЕНЫ</p>
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <button onclick="switchTab('archive')" class="flex-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 py-2 rounded-xl text-xs font-bold active:scale-95 transition">
+          📂 Открыть папку месяца
+        </button>
+        <button onclick="resetWebbotForNextSnap()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-xl text-xs font-bold active:scale-95 transition">
+          📸 Следующий объект
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 2: KAM (ЕДИНОРАЗОВЫЙ ВВОД КОНСТРУКЦИЙ И ФАЙЛА ТРЕБОВАНИЙ) -->
+  <!-- ============================================================ -->
+  <section id="tab-content-kam" class="hidden space-y-3">
+    <!-- KAM Info Banner -->
+    <div class="glass-card rounded-2xl p-3 border-amber-500/30 bg-gradient-to-br from-[#1c1813] to-[#121319]">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">💼</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-black text-amber-400 uppercase tracking-wide">Кабинет КАМ (Менеджера Поставщика)</span>
+            </div>
+            <p class="text-[11px] text-neutral-300 mt-0.5">
+              Заполните адресную программу конструкций один раз и загрузите мастер-файл критериев/макета (ZIP, PDF, фото).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step A: Master Requirements File for ALL Constructions (ZIP/PDF/Images) -->
+    <div class="glass-card rounded-2xl p-3.5 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/40">1</span>
+          <h3 class="text-xs font-black uppercase tracking-wide text-white">Единоразовый файл требований (ZIP / PDF / Макет)</h3>
+        </div>
+        <span class="text-[10px] text-amber-400 font-bold">*На все конструкции</span>
+      </div>
+
+      <div class="border-2 border-dashed border-white/10 hover:border-amber-500/40 rounded-2xl p-4 text-center cursor-pointer transition" onclick="document.getElementById('kam-master-file-input').click()">
+        <input type="file" id="kam-master-file-input" accept=".zip,.pdf,image/*" class="hidden" onchange="handleKamMasterFileUpload(event)">
+        <span class="text-2xl block mb-1">📦</span>
+        <p class="text-xs font-bold text-white" id="kam-file-status-title">Нажмите или перетащите файл требований</p>
+        <p class="text-[10px] text-neutral-400 mt-0.5" id="kam-file-status-sub">Поддерживаются архивы ZIP (пакет макетов), PDF-спецификации или эталонные фото</p>
+      </div>
+
+      <div>
+        <label for="kam-criteria-desc" class="block text-[10px] font-bold text-neutral-400 mb-1">Критерии приемки для автоматических движков</label>
+        <textarea id="kam-criteria-desc" rows="2" class="w-full text-xs rounded-xl px-3 py-2 border" placeholder="Фронтальный ракурс 15-20м, читаемость логотипа 100%, проверка включенной подсветки"></textarea>
+      </div>
+    </div>
+
+    <!-- Step B: Constructions Address Program -->
+    <div class="glass-card rounded-2xl p-3.5 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/40">2</span>
+          <h3 class="text-xs font-black uppercase tracking-wide text-white">Адресная программа конструкций</h3>
+        </div>
+        <span class="text-[10px] font-bold text-neutral-400" id="kam-const-count">Конструкций: 3</span>
+      </div>
+
+      <!-- Quick Add Construction Form -->
+      <div class="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-2 text-xs">
+        <span class="text-[10px] font-bold text-amber-300 block">➕ Добавить конструкцию в адресную программу:</span>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="kam-add-code" type="text" placeholder="Код: BB-MOW-0999" class="text-xs rounded-xl px-2.5 py-1.5 border uppercase font-mono">
+          <select id="kam-add-type" class="text-xs rounded-xl px-2 py-1.5 border">
+            <option value="Билборд 3х6 м">Билборд 3х6 м</option>
+            <option value="Суперсайт 15х5 м">Суперсайт 15х5 м</option>
+            <option value="Сити-борд 3.7х2.7 м">Сити-борд 3.7х2.7 м</option>
+            <option value="Цифровой экран (DOOH)">Цифровой экран (DOOH)</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <input id="kam-add-city" type="text" placeholder="Город" value="Москва" class="text-xs rounded-xl px-2.5 py-1.5 border">
+          <input id="kam-add-addr" type="text" placeholder="Адрес (ул., дом)" class="col-span-2 text-xs rounded-xl px-2.5 py-1.5 border">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="kam-add-side" type="text" placeholder="Сторона (Сторона А)" value="Сторона А (в центр)" class="text-xs rounded-xl px-2.5 py-1.5 border">
+          <input id="kam-add-light" type="text" placeholder="Подсветка" value="LED прожекторы" class="text-xs rounded-xl px-2.5 py-1.5 border">
+        </div>
+        <div class="flex justify-end pt-1">
+          <button type="button" onclick="addConstructionFromKam()" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition">
+            + Внести в программу
+          </button>
+        </div>
+      </div>
+
+      <!-- Current List of Constructions for this Contractor -->
+      <div class="space-y-1.5 max-h-60 overflow-y-auto pr-1" id="kam-constructions-list">
+        <!-- Injected via JS -->
+      </div>
+
+      <button type="button" id="btn-save-kam-program" onclick="submitKamProgram()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2.5 rounded-xl shadow active:scale-95 transition">
+        💾 Утвердить адресную программу и критерии
+      </button>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 3: ARCHIVE FOLDERS (ПАПКИ ПОСТАВЩИКА ПО МЕСЯЦАМ) -->
+  <!-- ============================================================ -->
+  <section id="tab-content-archive" class="hidden space-y-3">
+    <div class="glass-card rounded-2xl p-3 border-sky-500/30 bg-gradient-to-br from-[#111622] to-[#0f1118]">
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl">📁</span>
+        <div>
+          <h2 class="text-xs font-black uppercase tracking-wider text-sky-400">Файловый Архив OOH по Месяцам</h2>
+          <p class="text-[11px] text-neutral-300">
+            Файлы автоматически раскладываются в папки под наименованием поставщика за каждый отчетный месяц.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Folders Container -->
+    <div id="archive-tree-container" class="space-y-2.5">
+      <!-- Injected via JS -->
+      <div class="p-6 text-center text-xs text-neutral-400">Загрузка каталогов...</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TAB 4: REPORTS REGISTRY & ADMIN AUDIT (СВОДНЫЙ РЕЕСТР) -->
+  <!-- ============================================================ -->
+  <section id="tab-content-reports" class="hidden space-y-3">
+    <!-- Filter and Search Bar -->
+    <div class="glass-card rounded-2xl p-3 space-y-2.5">
+      <div class="relative">
+        <input id="search-input" type="text" placeholder="Поиск по поставщику, адресу, коду или кампании..." oninput="handleSearch(this.value)" class="w-full text-xs rounded-xl px-3 py-2 pl-8 border">
+        <span class="absolute left-2.5 top-2.5 text-xs text-neutral-400">🔍</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+        <div>
+          <select id="filter-contractor" onchange="applyFilters()" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+            <option value="">Все поставщики</option>
+          </select>
+        </div>
+        <div>
+          <select id="filter-status" onchange="applyFilters()" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+            <option value="">Все статусы</option>
+            <option value="mounted">Размещено</option>
+            <option value="illumination_ok">Освещение ОК</option>
+            <option value="defect_reported">Дефект/Замечание</option>
+          </select>
+        </div>
+        <div class="col-span-2 sm:col-span-1">
+          <select id="sort-order" onchange="applyFilters()" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+            <option value="contractor_hierarchy">По порядку: Поставщик → Локация → Конструкция → Дата</option>
+            <option value="latest">По дате (сначала новые)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mandatory Order Notification Header -->
+    <div class="flex items-center justify-between text-[11px] font-bold text-neutral-400 px-1">
+      <span class="uppercase tracking-wider">Структура хранения:</span>
+      <span class="text-neutral-300 font-mono text-[10px]">1.Поставщик → 2.Локация → 3.Конструкция → 4.Дата/Время</span>
+    </div>
+
+    <!-- Reports List Container -->
+    <div id="reports-list" class="space-y-3">
+      <div class="p-8 text-center text-neutral-500 text-xs">Загрузка реестра отчетов...</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: DETAILED AUDIT CARD & PASSPORT -->
+  <!-- ============================================================ -->
+  <div id="report-detail-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl p-4 border border-white/10 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-red-500 font-black text-sm">🛡️</span>
+          <h3 class="text-xs font-black uppercase tracking-wider text-white" id="modal-report-id">Отчет OOH</h3>
+        </div>
+        <button onclick="closeReportModal()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+      </div>
+      <div id="modal-content" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: SWITCH USER / ROLE (KAM, FIELD SPECIALIST, ADMIN) -->
+  <!-- ============================================================ -->
+  <div id="profile-switch-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="glass-card w-full max-w-md rounded-3xl p-4 border border-white/10 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div>
+          <h3 class="text-xs font-black uppercase tracking-wider text-white">Выбор профиля и роли в системе</h3>
+          <p class="text-[10px] text-neutral-400">КАМ, Полевой специалист или Главный Администратор</p>
+        </div>
+        <button onclick="closeProfileSwitchModal()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+      </div>
+      <div id="profile-selection-list" class="space-y-2 max-h-[65vh] overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: EDIT USER DETAILS -->
+  <!-- ============================================================ -->
+  <div id="edit-user-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="glass-card w-full max-w-md rounded-3xl p-4 border border-white/10 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div>
+          <h3 id="edit-user-modal-title" class="text-xs font-black uppercase tracking-wider text-white">Редактирование профиля</h3>
+          <p id="edit-user-modal-subtitle" class="text-[10px] text-neutral-400">Изменение значений</p>
+        </div>
+        <button onclick="closeEditUserModal()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+      </div>
+      <form id="edit-user-form" onsubmit="submitEditUserForm(event)" class="space-y-2.5 text-xs">
+        <input type="hidden" id="edit-user-id">
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Организация</label>
+          <input id="edit-user-org" type="text" class="w-full text-xs rounded-xl px-3 py-1.5 border" required>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">ФИО представителя</label>
+            <input id="edit-user-name" type="text" class="w-full text-xs rounded-xl px-3 py-1.5 border" required>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">ИНН организации</label>
+            <input id="edit-user-inn" type="text" class="w-full text-xs rounded-xl px-3 py-1.5 border">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Телефон</label>
+            <input id="edit-user-phone" type="text" class="w-full text-xs rounded-xl px-3 py-1.5 border">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Telegram логин</label>
+            <input id="edit-user-telegram" type="text" class="w-full text-xs rounded-xl px-3 py-1.5 border">
+          </div>
+        </div>
+        <div id="admin-only-user-fields" class="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
+          <div>
+            <label class="block text-[10px] font-bold text-red-400 mb-0.5">Роль</label>
+            <select id="edit-user-role" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+              <option value="field">Полевой специалист</option>
+              <option value="kam">КАМ Поставщика</option>
+              <option value="admin">Главный Администратор</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-red-400 mb-0.5">Статус аккаунта</label>
+            <select id="edit-user-status" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+              <option value="true">Активен</option>
+              <option value="false">Приостановлен</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Служебное описание</label>
+          <input id="edit-user-desc" type="text" class="w-full text-xs rounded-xl px-3 py-1.5 border">
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeEditUserModal()" class="bg-neutral-800 text-neutral-300 font-bold px-3 py-1.5 rounded-xl">Отмена</button>
+          <button type="submit" id="btn-save-user" class="bg-red-600 text-white font-bold px-4 py-1.5 rounded-xl">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: EDIT REPORT VALUES (ADMIN & CONTRACTOR) -->
+  <!-- ============================================================ -->
+  <div id="edit-report-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="glass-card w-full max-w-lg rounded-3xl p-4 border border-white/10 shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div>
+          <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Редактирование значений отчета</h3>
+          <p id="edit-report-modal-id" class="text-[10px] text-neutral-400 font-mono">ID отчета</p>
+        </div>
+        <button onclick="closeEditReportModal()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+      </div>
+      <form id="edit-report-form" onsubmit="submitEditReportForm(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-report-id">
+        <!-- 1. Поставщик -->
+        <div class="bg-[#181a24] p-2.5 rounded-xl border border-white/5 space-y-1.5">
+          <span class="text-[10px] font-black uppercase text-red-400 block">1. Поставщик</span>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="edit-rep-contractor-name" type="text" placeholder="Организация" class="text-xs rounded-xl px-2.5 py-1.5 border">
+            <input id="edit-rep-contractor-rep" type="text" placeholder="ФИО специалиста" class="text-xs rounded-xl px-2.5 py-1.5 border">
+          </div>
+          <input id="edit-rep-contractor-phone" type="text" placeholder="Телефон" class="w-full text-xs rounded-xl px-2.5 py-1.5 border">
+        </div>
+        <!-- 2. Локация -->
+        <div class="bg-[#181a24] p-2.5 rounded-xl border border-white/5 space-y-1.5">
+          <span class="text-[10px] font-black uppercase text-sky-400 block">2. Локация</span>
+          <div class="grid grid-cols-3 gap-2">
+            <input id="edit-rep-loc-city" type="text" placeholder="Город" class="text-xs rounded-xl px-2.5 py-1.5 border">
+            <input id="edit-rep-loc-address" type="text" placeholder="Адрес" class="col-span-2 text-xs rounded-xl px-2.5 py-1.5 border">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="edit-rep-loc-lat" type="text" placeholder="Широта (Lat)" class="text-xs rounded-xl px-2.5 py-1.5 border font-mono">
+            <input id="edit-rep-loc-lon" type="text" placeholder="Долгота (Lon)" class="text-xs rounded-xl px-2.5 py-1.5 border font-mono">
+          </div>
+        </div>
+        <!-- 3. Конструкция -->
+        <div class="bg-[#181a24] p-2.5 rounded-xl border border-white/5 space-y-1.5">
+          <span class="text-[10px] font-black uppercase text-amber-400 block">3. Конструкция</span>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="edit-rep-const-code" type="text" placeholder="Код" class="text-xs rounded-xl px-2.5 py-1.5 border font-mono uppercase">
+            <input id="edit-rep-const-type" type="text" placeholder="Тип" class="text-xs rounded-xl px-2.5 py-1.5 border">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="edit-rep-const-side" type="text" placeholder="Сторона" class="text-xs rounded-xl px-2.5 py-1.5 border">
+            <input id="edit-rep-const-lighting" type="text" placeholder="Подсветка" class="text-xs rounded-xl px-2.5 py-1.5 border">
+          </div>
+        </div>
+        <!-- 4. Дата и время -->
+        <div class="bg-[#181a24] p-2.5 rounded-xl border border-white/5 space-y-1.5">
+          <span class="text-[10px] font-black uppercase text-emerald-400 block">4. Дата и время</span>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="edit-rep-date" type="text" placeholder="ДД.ММ.ГГГГ" class="text-xs rounded-xl px-2.5 py-1.5 border">
+            <input id="edit-rep-time" type="text" placeholder="ЧЧ:ММ:СС" class="text-xs rounded-xl px-2.5 py-1.5 border">
+          </div>
+        </div>
+        <!-- Статусы -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Статус монтажа</label>
+            <select id="edit-rep-status" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+              <option value="mounted">Размещено</option>
+              <option value="illumination_ok">Освещение ОК</option>
+              <option value="defect_reported">Дефект/Замечание</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Верификация</label>
+            <select id="edit-rep-vstatus" class="w-full text-xs rounded-xl px-2 py-1.5 border">
+              <option value="verified">✅ Верифицирован</option>
+              <option value="pending">⏳ На проверке</option>
+              <option value="rejected">⚠️ Отклонен</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Кампания / Бренд</label>
+          <input id="edit-rep-campaign" type="text" class="w-full text-xs rounded-xl px-2.5 py-1.5 border">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-neutral-400 mb-0.5">Примечания / Дефекты</label>
+          <input id="edit-rep-notes" type="text" class="w-full text-xs rounded-xl px-2.5 py-1.5 border">
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeEditReportModal()" class="bg-neutral-800 text-neutral-300 font-bold px-3 py-1.5 rounded-xl">Отмена</button>
+          <button type="submit" id="btn-save-report" class="bg-amber-600 text-white font-bold px-4 py-1.5 rounded-xl">💾 Применить изменения</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-
-    // Автоматическая подстановка имени пользователя
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-      const name = `${user.first_name || ''} ${user.last_name || ''}`.trim().toUpperCase();
-      document.getElementById('user-display-name').innerText = `ЗДРАВСТВУЙТЕ, ${name}`;
+    // State management
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand();
+      tg.ready();
     }
 
-    // Вызов нативного сканера камеры
-    function triggerScanner() {
-      if (tg?.HapticFeedback?.impactOccurred) {
-        tg.HapticFeedback.impactOccurred('medium');
+    let activeTab = 'webbot';
+    let reportsData = [];
+    let usersData = [];
+    let contractorsData = [];
+    let constructionsData = [];
+    let kamProgramsData = [];
+    let archiveData = [];
+    let currentUser = null;
+
+    // Webbot live camera & GPS state
+    let cameraStream = null;
+    let liveGpsLocation = { latitude: 55.7928, longitude: 37.5432, accuracy: 4 };
+    let capturedPhotoBase64 = null;
+    let kamUploadedMasterFile = null;
+
+    // Initialize application
+    async function loadInitialData() {
+      try {
+        const [usersRes, reportsRes, contractorsRes, constRes, statsRes, kamRes, archRes] = await Promise.all([
+          fetch('/api/users').then(r => r.json()),
+          fetch('/api/reports?sortBy=contractor_hierarchy').then(r => r.json()),
+          fetch('/api/contractors').then(r => r.json()),
+          fetch('/api/constructions').then(r => r.json()),
+          fetch('/api/stats').then(r => r.json()),
+          fetch('/api/kam/programs').then(r => r.json()),
+          fetch('/api/archive/folders').then(r => r.json())
+        ]);
+
+        if (usersRes.success) usersData = usersRes.data;
+        if (reportsRes.success) reportsData = reportsRes.data;
+        if (contractorsRes.success) contractorsData = contractorsRes.data;
+        if (constRes.success) constructionsData = constRes.data;
+        if (kamRes.success) kamProgramsData = kamRes.data;
+        if (archRes.success) archiveData = archRes.data;
+
+        initCurrentUser();
+        updateStatsDisplay(statsRes.success ? statsRes.data : {});
+        populateWebbotConstructions();
+        renderReportsList(reportsData);
+        renderKamTab();
+        renderArchiveTab();
+
+        // Start live clock and GPS loop
+        initLiveSensors();
+      } catch (err) {
+        console.error('Initialization error:', err);
       }
-      if (typeof tg?.showScanQrPopup === 'function') {
-        tg.showScanQrPopup({ text: "Наведите камеру на QR-код паспорта конструкции" }, (qrResult) => {
-          tg.closeScanQrPopup();
+    }
+
+    function initCurrentUser() {
+      const savedUserId = localStorage.getItem('ooh_active_user_id');
+      if (savedUserId) {
+        currentUser = usersData.find(u => u.id === savedUserId);
+      }
+      if (!currentUser) {
+        // Default to field specialist to show real-time camera immediately
+        currentUser = usersData.find(u => u.role === 'field') || usersData[0];
+      }
+      updateUserUIState();
+    }
+
+    function updateUserUIState() {
+      if (!currentUser) return;
+
+      const badgeEl = document.getElementById('header-user-role-badge');
+      const nameEl = document.getElementById('header-user-name');
+      const displayEl = document.getElementById('user-display-name');
+
+      if (currentUser.role === 'admin') {
+        badgeEl.innerText = '🛡️ АДМИН';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30';
+        nameEl.innerText = 'Администратор';
+        displayEl.innerText = `Единый профиль: ${currentUser.name} (Центр мониторинга OOH)`;
+      } else if (currentUser.role === 'kam') {
+        badgeEl.innerText = '👔 КАМ';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        nameEl.innerText = currentUser.name.split(' ')[0] || currentUser.name;
+        displayEl.innerText = `КАМ: ${currentUser.organization} (${currentUser.name})`;
+      } else {
+        badgeEl.innerText = '👷 ПОЛЕВОЙ';
+        badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-500/20 text-sky-400 border border-sky-500/30';
+        nameEl.innerText = currentUser.name.split(' ')[0] || currentUser.name;
+        displayEl.innerText = `Полевой специалист: ${currentUser.organization} (${currentUser.name})`;
+      }
+
+      document.getElementById('webbot-supplier-label').innerText = currentUser.organization || 'ООО «МедиаАутдор Групп»';
+      populateWebbotConstructions();
+      renderKamTab();
+    }
+
+    function switchUser(userId) {
+      const found = usersData.find(u => u.id === userId);
+      if (!found) return;
+
+      currentUser = found;
+      localStorage.setItem('ooh_active_user_id', currentUser.id);
+      updateUserUIState();
+      closeProfileSwitchModal();
+
+      // Switch default tab depending on role
+      if (currentUser.role === 'kam') {
+        switchTab('kam');
+      } else if (currentUser.role === 'field') {
+        switchTab('webbot');
+      }
+
+      renderReportsList(reportsData);
+      showToast(`Профиль изменен: ${currentUser.name} (${currentUser.role.toUpperCase()})`);
+    }
+
+    // Tabs switching
+    function switchTab(tabId) {
+      activeTab = tabId;
+      const tabIds = ['webbot', 'kam', 'archive', 'reports'];
+      tabIds.forEach(id => {
+        const btn = document.getElementById(`tab-btn-${id}`);
+        const content = document.getElementById(`tab-content-${id}`);
+        if (btn) {
+          if (id === tabId) {
+            btn.className = 'py-2 rounded-xl text-center transition bg-red-600 text-white shadow truncate px-1';
+          } else {
+            btn.className = 'py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1';
+          }
+        }
+        if (content) {
+          content.classList.toggle('hidden', id !== tabId);
+        }
+      });
+
+      if (tabId === 'webbot' && !cameraStream) {
+        startLiveCamera();
+      }
+      if (tabId === 'archive') {
+        renderArchiveTab();
+      }
+    }
+
+    // Live Sensors: Clock & GPS
+    function initLiveSensors() {
+      // Clock
+      setInterval(() => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const clockEl = document.getElementById('webbot-live-clock');
+        const hudTimestamp = document.getElementById('hud-live-timestamp');
+        if (clockEl) clockEl.innerText = `MSK ${timeStr}`;
+        if (hudTimestamp) hudTimestamp.innerText = `${dateStr} ${timeStr}`;
+      }, 1000);
+
+      // GPS
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          (pos) => {
+            liveGpsLocation = {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: Math.round(pos.coords.accuracy)
+            };
+            const hudGps = document.getElementById('hud-gps-coords');
+            if (hudGps) {
+              hudGps.innerText = `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (±${liveGpsLocation.accuracy}м)`;
+            }
+          },
+          (err) => console.warn('GPS watch error:', err),
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+      }
+    }
+
+    // Populate constructions for active contractor
+    function populateWebbotConstructions() {
+      const select = document.getElementById('webbot-const-select');
+      if (!select) return;
+
+      select.innerHTML = '<option value="">-- Выберите конструкцию по адресу/коду --</option>';
+
+      // Find constructions registered by KAM for current contractor
+      const kamProg = kamProgramsData.find(p => p.contractorId === currentUser?.contractorId) || kamProgramsData[0];
+      const list = kamProg?.constructions?.length ? kamProg.constructions : constructionsData;
+
+      list.forEach((item, index) => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify(item);
+        opt.textContent = `${item.code} • ${item.address} (${item.side || 'Сторона А'})`;
+        if (index === 0) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      if (list.length > 0) {
+        onWebbotConstSelect(JSON.stringify(list[0]));
+      }
+    }
+
+    function onWebbotConstSelect(jsonStr) {
+      if (!jsonStr) return;
+      try {
+        const c = JSON.parse(jsonStr);
+        document.getElementById('wb-const-code').innerText = c.code;
+        document.getElementById('wb-const-type').innerText = c.type;
+        document.getElementById('wb-const-addr').innerText = `${c.city || 'Москва'}, ${c.address}`;
+        document.getElementById('wb-const-side').innerText = `Сторона: ${c.side}`;
+        document.getElementById('wb-const-light').innerText = `Подсветка: ${c.lightingType}`;
+
+        const wmLine = document.getElementById('hud-watermark-line');
+        if (wmLine) {
+          wmLine.innerText = `${currentUser?.organization || 'Поставщик'} • ${c.code}`;
+        }
+      } catch (e) {}
+    }
+
+    function detectNearestConstruction() {
+      if (!liveGpsLocation) {
+        alert('GPS еще не зафиксирован.');
+        return;
+      }
+
+      const kamProg = kamProgramsData.find(p => p.contractorId === currentUser?.contractorId) || kamProgramsData[0];
+      const list = kamProg?.constructions || constructionsData;
+
+      let nearest = null;
+      let minDistance = Infinity;
+
+      list.forEach(c => {
+        if (c.latitude && c.longitude) {
+          const d = Math.hypot(c.latitude - liveGpsLocation.latitude, c.longitude - liveGpsLocation.longitude);
+          if (d < minDistance) {
+            minDistance = d;
+            nearest = c;
+          }
+        }
+      });
+
+      if (nearest) {
+        onWebbotConstSelect(JSON.stringify(nearest));
+        showToast(`🎯 Ближайшая конструкция: ${nearest.code} (${nearest.address})`);
+      }
+    }
+
+    // Live Camera Feed Control (Hardware WebCam)
+    async function startLiveCamera() {
+      const video = document.getElementById('webbot-video');
+      const placeholder = document.getElementById('webbot-camera-placeholder');
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        video.srcObject = cameraStream;
+        await video.play();
+        placeholder.classList.add('hidden');
+      } catch (err) {
+        console.warn('Camera stream error:', err);
+        // Fallback: inform user they can use hardware camera button
+        placeholder.classList.remove('hidden');
+      }
+    }
+
+    function triggerHardwareCameraFallback() {
+      document.getElementById('webbot-hardware-camera-input').click();
+    }
+
+    function handleHardwareCameraCapture(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        capturedPhotoBase64 = e.target.result;
+        // Submit directly through engine
+        executeRealTimeReportSubmission(capturedPhotoBase64);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Snap live frame from <video> via <canvas> and submit
+    function captureLiveFrameAndSubmit() {
+      const video = document.getElementById('webbot-video');
+      const canvas = document.getElementById('webbot-canvas');
+      const snapBtn = document.getElementById('btn-snap-camera');
+
+      if (!cameraStream || video.videoWidth === 0) {
+        // Fallback to hardware camera
+        triggerHardwareCameraFallback();
+        return;
+      }
+
+      snapBtn.disabled = true;
+      snapBtn.innerHTML = '<span>⏳</span><span>Анализ движками OOH...</span>';
+
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.88);
+      executeRealTimeReportSubmission(capturedPhotoBase64);
+    }
+
+    // Execute Real-Time Report Submission via Service & Engines
+    async function executeRealTimeReportSubmission(photoBase64) {
+      const snapBtn = document.getElementById('btn-snap-camera');
+      snapBtn.disabled = true;
+      snapBtn.innerHTML = '<span>⏳</span><span>Движки проверяют соответствие...</span>';
+
+      try {
+        const constSelect = document.getElementById('webbot-const-select');
+        let selectedConst = null;
+        try {
+          selectedConst = JSON.parse(constSelect.value);
+        } catch(e) {}
+
+        const code = selectedConst?.code || document.getElementById('wb-const-code').innerText;
+        const side = selectedConst?.side || 'Сторона А';
+
+        const payload = {
+          contractorId: currentUser?.contractorId || 'cnt_01',
+          contractorName: currentUser?.organization || 'ООО «МедиаАутдор Групп»',
+          specialistName: currentUser?.name || 'Полевой специалист',
+          specialistPhone: currentUser?.phone || '',
+          constructionCode: code,
+          constructionSide: side,
+          location: {
+            city: selectedConst?.city || 'Москва',
+            address: selectedConst?.address || 'Адрес конструкции',
+            latitude: liveGpsLocation.latitude,
+            longitude: liveGpsLocation.longitude,
+            accuracy: liveGpsLocation.accuracy
+          },
+          mediaBase64: photoBase64,
+          mediaType: 'image/jpeg',
+          captureTimestamp: new Date().toISOString(),
+          captureSource: 'live_camera_stream',
+          campaignName: selectedConst?.activeCampaign || 'Кампания OOH Сентябрь 2026'
+        };
+
+        const res = await fetch('/api/field/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
           if (tg?.HapticFeedback?.notificationOccurred) {
             tg.HapticFeedback.notificationOccurred('success');
           }
-          if (typeof tg?.sendData === 'function') {
-            tg.sendData(JSON.stringify({ qr: qrResult }));
-          }
-          return true;
-        });
-      } else {
-        alert("Сканер QR-кода активен в Telegram Web App. В веб-браузере используйте камеру устройства.");
+
+          // Display success result card
+          const resultCard = document.getElementById('webbot-result-card');
+          resultCard.classList.remove('hidden');
+
+          document.getElementById('wb-res-time').innerText = new Date().toLocaleTimeString('ru-RU');
+          document.getElementById('wb-res-compliance').innerText = data.compliance.isFullyCompliant
+            ? '✓ ТЗ КАМ совпадает 100%'
+            : '⚠️ Замечено отклонение от эталона';
+          document.getElementById('wb-res-quality').innerText = `✓ Четкость ${data.mediaAnalysis.sharpnessScore} (${data.mediaAnalysis.resolution})`;
+          document.getElementById('wb-res-folder').innerText = `/${data.storage.folder}/${data.storage.fileName}`;
+          document.getElementById('wb-res-hash').innerText = `ШТАМП OOH: ${data.stamp.stampHash} • ВОДЯНЫЕ ЗНАКИ НАЛОЖЕНЫ`;
+
+          showToast('✅ Отчет зафиксирован в реальном времени и сохранен в папку месяца!');
+          await loadInitialData();
+        } else {
+          alert('Отклонено движком: ' + (data.error || 'Ошибка проверки'));
+        }
+      } catch (err) {
+        alert('Ошибка отправки: ' + err.message);
+      } finally {
+        snapBtn.disabled = false;
+        snapBtn.innerHTML = '<span>📸</span><span>Зафиксировать и отправить</span>';
       }
     }
+
+    function resetWebbotForNextSnap() {
+      document.getElementById('webbot-result-card').classList.add('hidden');
+    }
+
+    // ==========================================
+    // KAM TAB: PROGRAM & MASTER FILE UPLOAD
+    // ==========================================
+    function renderKamTab() {
+      const kamProg = kamProgramsData.find(p => p.contractorId === currentUser?.contractorId) || kamProgramsData[0];
+      if (!kamProg) return;
+
+      document.getElementById('kam-const-count').innerText = `Конструкций: ${kamProg.constructions?.length || 0}`;
+
+      if (kamProg.masterRequirementFile) {
+        document.getElementById('kam-file-status-title').innerText = `Утвержден эталон: ${kamProg.masterRequirementFile.fileName}`;
+        document.getElementById('kam-file-status-sub').innerText = `Статус: ${kamProg.masterRequirementFile.engineChecks?.status || 'APPROVED_BY_ENGINE'} • ${kamProg.masterRequirementFile.criteriaSummary || ''}`;
+        document.getElementById('kam-criteria-desc').value = kamProg.masterRequirementFile.criteriaSummary || '';
+      }
+
+      const listEl = document.getElementById('kam-constructions-list');
+      if (listEl) {
+        listEl.innerHTML = (kamProg.constructions || []).map((c, idx) => `
+          <div class="bg-black/30 p-2 rounded-xl border border-white/5 flex items-center justify-between text-xs">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono font-black text-amber-300">${c.code}</span>
+                <span class="text-neutral-400 text-[10px]">• ${c.type}</span>
+              </div>
+              <p class="text-white text-[11px]">${c.city}, ${c.address}</p>
+              <p class="text-[10px] text-neutral-400">${c.side} • ${c.lightingType}</p>
+            </div>
+            <button onclick="removeKamConstruction(${idx})" class="text-rose-400 hover:text-rose-300 p-1 text-xs">✕</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function handleKamMasterFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        kamUploadedMasterFile = {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          base64: e.target.result
+        };
+        document.getElementById('kam-file-status-title').innerText = `✓ Выбран файл: ${file.name} (${(file.size / 1024).toFixed(0)} КБ)`;
+        document.getElementById('kam-file-status-sub').innerText = 'Готов к валидации движком OOH';
+        showToast('📦 Файл критериев загружен для проверки движком');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function addConstructionFromKam() {
+      const code = document.getElementById('kam-add-code').value.trim();
+      const addr = document.getElementById('kam-add-addr').value.trim();
+      if (!code || !addr) {
+        alert('Укажите код и адрес конструкции.');
+        return;
+      }
+
+      const kamProg = kamProgramsData.find(p => p.contractorId === currentUser?.contractorId) || kamProgramsData[0];
+      if (!kamProg.constructions) kamProg.constructions = [];
+
+      kamProg.constructions.push({
+        code: code.toUpperCase(),
+        type: document.getElementById('kam-add-type').value,
+        city: document.getElementById('kam-add-city').value,
+        address: addr,
+        side: document.getElementById('kam-add-side').value,
+        lightingType: document.getElementById('kam-add-light').value,
+        latitude: liveGpsLocation.latitude,
+        longitude: liveGpsLocation.longitude
+      });
+
+      document.getElementById('kam-add-code').value = '';
+      document.getElementById('kam-add-addr').value = '';
+      renderKamTab();
+      showToast(`✓ Конструкция ${code} добавлена в список`);
+    }
+
+    function removeKamConstruction(idx) {
+      const kamProg = kamProgramsData.find(p => p.contractorId === currentUser?.contractorId) || kamProgramsData[0];
+      if (kamProg && kamProg.constructions) {
+        kamProg.constructions.splice(idx, 1);
+        renderKamTab();
+      }
+    }
+
+    async function submitKamProgram() {
+      const saveBtn = document.getElementById('btn-save-kam-program');
+      saveBtn.disabled = true;
+      saveBtn.innerText = 'Проверка движками OOH...';
+
+      const kamProg = kamProgramsData.find(p => p.contractorId === currentUser?.contractorId) || kamProgramsData[0];
+
+      const payload = {
+        contractorId: currentUser?.contractorId || 'cnt_01',
+        contractorName: currentUser?.organization || 'ООО «МедиаАутдор Групп»',
+        kamName: currentUser?.name || 'КАМ Поставщика',
+        kamPhone: currentUser?.phone || '',
+        constructions: kamProg.constructions,
+        masterFile: kamUploadedMasterFile ? {
+          ...kamUploadedMasterFile,
+          criteriaSummary: document.getElementById('kam-criteria-desc').value
+        } : (kamProg.masterRequirementFile ? {
+          ...kamProg.masterRequirementFile,
+          criteriaSummary: document.getElementById('kam-criteria-desc').value
+        } : null)
+      };
+
+      try {
+        const res = await fetch('/api/kam/programs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Адресная программа и критерии утверждены движками!');
+          await loadInitialData();
+        } else {
+          alert('Ошибка сохранения: ' + data.error);
+        }
+      } catch (err) {
+        alert('Сетевая ошибка: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = '💾 Утвердить адресную программу и критерии';
+      }
+    }
+
+    // ==========================================
+    // ARCHIVE FOLDERS TAB: SUPPLIER / MONTH
+    // ==========================================
+    function renderArchiveTab() {
+      const container = document.getElementById('archive-tree-container');
+      if (!container) return;
+
+      if (!archiveData || archiveData.length === 0) {
+        container.innerHTML = '<div class="glass-card rounded-2xl p-6 text-center text-xs text-neutral-400">Папки архива пусты.</div>';
+        return;
+      }
+
+      container.innerHTML = archiveData.map(supplierDir => `
+        <div class="glass-card rounded-2xl p-3 border space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🏢</span>
+            <span class="font-black text-xs text-white uppercase">${supplierDir.contractorFolder.replace(/_/g, ' ')}</span>
+          </div>
+          <div class="space-y-1.5 pl-2 border-l border-white/10">
+            ${supplierDir.months.map(m => `
+              <div class="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="font-mono font-bold text-sky-400">📅 ${m.month} (Отчетный месяц)</span>
+                  <span class="text-[10px] text-neutral-400">${m.filesCount} файлов</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  ${m.files.map(f => `
+                    <div class="bg-[#181a24] p-2 rounded-lg border border-white/5 flex items-center justify-between text-[11px]">
+                      <div class="truncate max-w-[200px]">
+                        <span class="font-mono font-bold text-white block truncate">${f.fileName}</span>
+                        <span class="text-[9px] text-neutral-400">${(f.sizeBytes / 1024).toFixed(0)} КБ • ${new Date(f.createdAt).toLocaleDateString('ru-RU')}</span>
+                      </div>
+                      <a href="${f.url}" target="_blank" class="text-sky-400 hover:text-sky-300 text-[10px] font-bold px-2 py-1 bg-sky-500/10 rounded border border-sky-500/20">
+                        Открыть ➔
+                      </a>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // REPORTS REGISTRY TAB
+    // ==========================================
+    function renderReportsList(reports) {
+      const container = document.getElementById('reports-list');
+      if (!container) return;
+
+      if (!reports || reports.length === 0) {
+        container.innerHTML = `
+          <div class="glass-card rounded-2xl p-8 text-center text-neutral-400 space-y-2">
+            <span class="text-3xl block">📋</span>
+            <p class="text-xs font-bold text-white">Отчеты не найдены</p>
+            <p class="text-[11px]">Попробуйте сбросить фильтры или снимите фото в веб-боте</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = reports.map(rep => {
+        const photoUrl = rep.photos && rep.photos.length > 0 ? rep.photos[0] : (rep.photoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=400&q=80');
+
+        return `
+          <article onclick="openReportModal('${rep.id}')" class="glass-card rounded-2xl p-3.5 space-y-2.5 cursor-pointer hover:border-red-500/30 transition shadow-sm active:scale-[0.99]">
+            <div class="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
+              <div class="flex items-center gap-1.5">
+                <span class="font-black text-xs text-white uppercase tracking-wide truncate max-w-[200px]">${rep.campaignName}</span>
+                ${rep.realTimeCapture ? '<span class="text-[8px] bg-emerald-500/20 text-emerald-400 font-bold px-1 rounded border border-emerald-500/30">REALTIME</span>' : ''}
+              </div>
+              <div class="flex items-center gap-1">
+                ${getStatusBadge(rep.status)}
+                ${getVerificationBadge(rep.verificationStatus)}
+              </div>
+            </div>
+
+            <!-- 4 Pillars Grid -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-[#181a24] p-2 rounded-xl border border-white/5">
+                <span class="text-[9px] font-black uppercase text-red-400 block mb-0.5">1. Поставщик</span>
+                <p class="font-bold text-white truncate">${rep.contractor?.name}</p>
+                <p class="text-[10px] text-neutral-400 truncate">${rep.contractor?.representative || 'Монтажник'}</p>
+              </div>
+              <div class="bg-[#181a24] p-2 rounded-xl border border-white/5">
+                <span class="text-[9px] font-black uppercase text-sky-400 block mb-0.5">2. Локация</span>
+                <p class="font-bold text-white truncate">${rep.location?.address}</p>
+                <p class="text-[10px] text-neutral-400 truncate">${rep.location?.city}</p>
+              </div>
+              <div class="bg-[#181a24] p-2 rounded-xl border border-white/5">
+                <span class="text-[9px] font-black uppercase text-amber-400 block mb-0.5">3. Конструкция</span>
+                <p class="font-mono font-black text-amber-300 text-xs">${rep.construction?.code}</p>
+                <p class="text-[10px] text-neutral-400 truncate">${rep.construction?.side} • ${rep.construction?.lightingType}</p>
+              </div>
+              <div class="bg-[#181a24] p-2 rounded-xl border border-white/5">
+                <span class="text-[9px] font-black uppercase text-emerald-400 block mb-0.5">4. Дата и время</span>
+                <p class="font-mono font-bold text-white text-xs">${rep.displayDate}</p>
+                <p class="text-[10px] text-neutral-400 font-mono">${rep.displayTime} MSK</p>
+              </div>
+            </div>
+
+            <!-- Footer Toolbar -->
+            <div class="flex items-center justify-between pt-1 text-xs text-neutral-400 border-t border-white/5">
+              <div class="flex items-center gap-2">
+                <img src="${photoUrl}" alt="Фото" class="w-7 h-7 rounded-lg object-cover border border-white/10">
+                <span class="text-[10px]">Штамп: ${rep.stampHash || 'OOH-VERIFIED'}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                ${currentUser?.role === 'admin' ? `
+                  <button onclick="event.stopPropagation(); openEditReportModal('${rep.id}')" class="text-[10px] font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 px-2 py-0.5 rounded border border-amber-500/30 active:scale-95 transition">
+                    ✏️ Изменить
+                  </button>
+                ` : ''}
+                <span class="text-red-400 font-bold hover:underline">Подробнее ➔</span>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'mounted') return '<span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">Размещено</span>';
+      if (status === 'illumination_ok') return '<span class="text-[9px] bg-amber-500/20 text-amber-400 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">Подсветка ОК</span>';
+      if (status === 'defect_reported') return '<span class="text-[9px] bg-rose-500/20 text-rose-400 font-bold px-1.5 py-0.5 rounded border border-rose-500/30">Дефект</span>';
+      return '<span class="text-[9px] bg-neutral-800 text-neutral-300 font-bold px-1.5 py-0.5 rounded">В работе</span>';
+    }
+
+    function getVerificationBadge(vstatus) {
+      if (vstatus === 'verified') return '<span class="text-[9px] text-emerald-400 font-bold">✓ Проверено</span>';
+      if (vstatus === 'rejected') return '<span class="text-[9px] text-rose-400 font-bold">✕ Отклонен</span>';
+      return '<span class="text-[9px] text-amber-400 font-semibold">⏳ На проверке</span>';
+    }
+
+    // Modal Audit Card
+    function openReportModal(reportId) {
+      const rep = reportsData.find(r => r.id === reportId);
+      if (!rep) return;
+
+      document.getElementById('modal-report-id').innerText = `${rep.id} • ${rep.campaignName}`;
+      const photoUrl = rep.photos && rep.photos.length > 0 ? rep.photos[0] : (rep.photoUrl || '');
+      const mapLink = rep.location?.latitude && rep.location?.longitude
+        ? `https://yandex.ru/maps/?pt=${rep.location.longitude},${rep.location.latitude}&z=16&l=map`
+        : null;
+
+      const modalContent = document.getElementById('modal-content');
+      modalContent.innerHTML = `
+        ${photoUrl ? `
+          <div class="rounded-2xl overflow-hidden border border-white/10 mb-3 max-h-56 bg-black flex items-center justify-center">
+            <img src="${photoUrl}" alt="Фотоотчет размещения" class="w-full h-auto object-contain">
+          </div>
+        ` : ''}
+
+        <div class="space-y-2 text-xs">
+          <div class="bg-[#1d1f2b] p-3 rounded-xl border border-white/5">
+            <p class="text-[10px] font-black uppercase text-red-400 mb-1">1. Поставщик</p>
+            <p class="font-black text-white text-sm">${rep.contractor?.name || '—'}</p>
+            <p class="text-neutral-300">Специалист: ${rep.contractor?.representative || '—'} ${rep.contractor?.phone ? `(${rep.contractor.phone})` : ''}</p>
+          </div>
+          <div class="bg-[#1d1f2b] p-3 rounded-xl border border-white/5">
+            <p class="text-[10px] font-black uppercase text-sky-400 mb-1">2. Локация</p>
+            <p class="font-bold text-white">${rep.location?.city ? `${rep.location.city}, ` : ''}${rep.location?.address || '—'}</p>
+            ${mapLink ? `
+              <a href="${mapLink}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 text-[11px] font-bold mt-1">
+                <span>📍 Открыть на Яндекс.Картах</span>
+              </a>
+            ` : ''}
+          </div>
+          <div class="bg-[#1d1f2b] p-3 rounded-xl border border-white/5">
+            <p class="text-[10px] font-black uppercase text-amber-400 mb-1">3. Конструкция</p>
+            <div class="flex justify-between items-baseline">
+              <span class="font-mono font-black text-amber-300 text-sm">${rep.construction?.code}</span>
+              <span class="text-neutral-300">${rep.construction?.type}</span>
+            </div>
+            <p class="text-neutral-400 mt-0.5">Сторона: ${rep.construction?.side || 'А'} • Подсветка: ${rep.construction?.lightingType || 'Штатная'}</p>
+          </div>
+          <div class="bg-[#1d1f2b] p-3 rounded-xl border border-white/5">
+            <p class="text-[10px] font-black uppercase text-emerald-400 mb-1">4. Дата и время</p>
+            <p class="font-mono font-bold text-white text-sm">${rep.displayDate} в ${rep.displayTime} MSK</p>
+            <p class="text-[10px] text-neutral-400">ШТАМП OOH: ${rep.stampHash || 'OOH-VERIFIED'}</p>
+          </div>
+
+          ${currentUser?.role === 'admin' ? `
+            <div class="bg-[#241a1a] border border-red-500/30 p-2.5 rounded-xl space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-wider text-red-400">🛡️ Панель Администратора</span>
+                <span class="text-[9px] text-neutral-400">Аудит и Правка</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button onclick="openEditReportModal('${rep.id}')" class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 active:scale-95 transition">
+                  <span>✏️</span><span>Редактировать</span>
+                </button>
+                <button onclick="quickVerifyReport('${rep.id}', 'verified')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-2 rounded-lg text-xs flex items-center justify-center gap-1 active:scale-95 transition">
+                  <span>✅</span><span>Одобрить</span>
+                </button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="pt-2 flex justify-end">
+          <button onclick="closeReportModal()" class="bg-neutral-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+            Закрыть
+          </button>
+        </div>
+      `;
+
+      const modal = document.getElementById('report-detail-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeReportModal() {
+      const modal = document.getElementById('report-detail-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function quickVerifyReport(reportId, status) {
+      try {
+        const res = await fetch(`/api/reports/${reportId}/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': currentUser?.id || 'usr_admin',
+            'x-user-role': currentUser?.role || 'admin',
+            'x-user-name': encodeURIComponent(currentUser?.name || 'Администратор')
+          },
+          body: JSON.stringify({
+            status,
+            notes: status === 'verified' ? 'Объект проверен' : 'Отклонено',
+            auditor: currentUser?.name || 'Главный Администратор'
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✓ Статус отчета обновлен');
+          await loadInitialData();
+          openReportModal(reportId);
+        }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
+
+    // Modal Profile Switcher
+    function openProfileSwitchModal() {
+      const listEl = document.getElementById('profile-selection-list');
+      if (!listEl) return;
+
+      listEl.innerHTML = usersData.map(u => {
+        const isSelected = currentUser?.id === u.id;
+        const isAdmin = u.role === 'admin';
+        const isKam = u.role === 'kam';
+
+        let icon = '👷';
+        let roleName = 'ПОЛЕВОЙ СПЕЦИАЛИСТ';
+        let roleBadgeClass = 'bg-sky-500/20 text-sky-400 border border-sky-500/30';
+
+        if (isAdmin) {
+          icon = '🛡️';
+          roleName = 'ГЛАВНЫЙ АДМИНИСТРАТОР';
+          roleBadgeClass = 'bg-red-500/20 text-red-400 border border-red-500/30';
+        } else if (isKam) {
+          icon = '👔';
+          roleName = 'КАМ ПОСТАВЩИКА';
+          roleBadgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        }
+
+        return `
+          <div onclick="switchUser('${u.id}')" class="p-3 rounded-2xl border cursor-pointer transition active:scale-[0.98] ${isSelected ? 'bg-red-600/15 border-red-500/50' : 'bg-[#191b24] hover:bg-[#202330] border-white/5'}">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">${icon}</span>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-white">${u.name}</span>
+                    <span class="text-[9px] font-black px-1.5 py-0.2 rounded ${roleBadgeClass}">${roleName}</span>
+                  </div>
+                  <p class="text-[11px] text-neutral-300 font-medium">${u.organization}</p>
+                </div>
+              </div>
+              <div>
+                ${isSelected ? '<span class="text-emerald-400 font-black text-sm">✓ Активен</span>' : '<span class="text-neutral-500 text-xs font-bold">Выбрать ➔</span>'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const modal = document.getElementById('profile-switch-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeProfileSwitchModal() {
+      const modal = document.getElementById('profile-switch-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Modal Edit User
+    function openEditUserModal(userId) {
+      const targetUser = usersData.find(u => u.id === userId);
+      if (!targetUser) return;
+
+      document.getElementById('edit-user-id').value = targetUser.id;
+      document.getElementById('edit-user-org').value = targetUser.organization || '';
+      document.getElementById('edit-user-name').value = targetUser.name || '';
+      document.getElementById('edit-user-inn').value = targetUser.inn || '';
+      document.getElementById('edit-user-phone').value = targetUser.phone || '';
+      document.getElementById('edit-user-telegram').value = targetUser.telegramUser || '';
+      document.getElementById('edit-user-desc').value = targetUser.description || '';
+      document.getElementById('edit-user-role').value = targetUser.role || 'field';
+      document.getElementById('edit-user-status').value = targetUser.active !== false ? 'true' : 'false';
+
+      const modal = document.getElementById('edit-user-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeEditUserModal() {
+      const modal = document.getElementById('edit-user-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function submitEditUserForm(event) {
+      event.preventDefault();
+      const userId = document.getElementById('edit-user-id').value;
+      const payload = {
+        name: document.getElementById('edit-user-name').value,
+        organization: document.getElementById('edit-user-org').value,
+        inn: document.getElementById('edit-user-inn').value,
+        phone: document.getElementById('edit-user-phone').value,
+        telegramUser: document.getElementById('edit-user-telegram').value,
+        role: document.getElementById('edit-user-role').value,
+        active: document.getElementById('edit-user-status').value === 'true',
+        description: document.getElementById('edit-user-desc').value
+      };
+
+      try {
+        const res = await fetch(`/api/users/${userId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': currentUser?.id || 'usr_admin',
+            'x-user-role': currentUser?.role || 'admin',
+            'x-user-name': encodeURIComponent(currentUser?.name || 'Администратор')
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✓ Значения пользователя сохранены');
+          closeEditUserModal();
+          await loadInitialData();
+        }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
+
+    // Modal Edit Report
+    function openEditReportModal(reportId) {
+      const rep = reportsData.find(r => r.id === reportId);
+      if (!rep) return;
+
+      closeReportModal();
+
+      document.getElementById('edit-report-id').value = rep.id;
+      document.getElementById('edit-report-modal-id').innerText = `Отчет: ${rep.id} • ${rep.campaignName}`;
+
+      document.getElementById('edit-rep-contractor-name').value = rep.contractor?.name || '';
+      document.getElementById('edit-rep-contractor-rep').value = rep.contractor?.representative || '';
+      document.getElementById('edit-rep-contractor-phone').value = rep.contractor?.phone || '';
+
+      document.getElementById('edit-rep-loc-city').value = rep.location?.city || '';
+      document.getElementById('edit-rep-loc-address').value = rep.location?.address || '';
+      document.getElementById('edit-rep-loc-lat').value = rep.location?.latitude || '';
+      document.getElementById('edit-rep-loc-lon').value = rep.location?.longitude || '';
+
+      document.getElementById('edit-rep-const-code').value = rep.construction?.code || '';
+      document.getElementById('edit-rep-const-type').value = rep.construction?.type || '';
+      document.getElementById('edit-rep-const-side').value = rep.construction?.side || '';
+      document.getElementById('edit-rep-const-lighting').value = rep.construction?.lightingType || '';
+
+      document.getElementById('edit-rep-date').value = rep.displayDate || '';
+      document.getElementById('edit-rep-time').value = rep.displayTime || '';
+
+      document.getElementById('edit-rep-status').value = rep.status || 'mounted';
+      document.getElementById('edit-rep-vstatus').value = rep.verificationStatus || 'pending';
+      document.getElementById('edit-rep-campaign').value = rep.campaignName || '';
+      document.getElementById('edit-rep-notes').value = rep.notes || '';
+
+      const modal = document.getElementById('edit-report-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeEditReportModal() {
+      const modal = document.getElementById('edit-report-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function submitEditReportForm(event) {
+      event.preventDefault();
+      const reportId = document.getElementById('edit-report-id').value;
+
+      const payload = {
+        contractor: {
+          name: document.getElementById('edit-rep-contractor-name').value,
+          representative: document.getElementById('edit-rep-contractor-rep').value,
+          phone: document.getElementById('edit-rep-contractor-phone').value
+        },
+        location: {
+          city: document.getElementById('edit-rep-loc-city').value,
+          address: document.getElementById('edit-rep-loc-address').value,
+          latitude: parseFloat(document.getElementById('edit-rep-loc-lat').value) || null,
+          longitude: parseFloat(document.getElementById('edit-rep-loc-lon').value) || null
+        },
+        construction: {
+          code: document.getElementById('edit-rep-const-code').value.toUpperCase(),
+          type: document.getElementById('edit-rep-const-type').value,
+          side: document.getElementById('edit-rep-const-side').value,
+          lightingType: document.getElementById('edit-rep-const-lighting').value
+        },
+        displayDate: document.getElementById('edit-rep-date').value,
+        displayTime: document.getElementById('edit-rep-time').value,
+        campaignName: document.getElementById('edit-rep-campaign').value,
+        status: document.getElementById('edit-rep-status').value,
+        verificationStatus: document.getElementById('edit-rep-vstatus').value,
+        notes: document.getElementById('edit-rep-notes').value
+      };
+
+      try {
+        const res = await fetch(`/api/reports/${reportId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': currentUser?.id || 'usr_admin',
+            'x-user-role': currentUser?.role || 'admin',
+            'x-user-name': encodeURIComponent(currentUser?.name || 'Администратор')
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ Значения отчета обновлены');
+          closeEditReportModal();
+          await loadInitialData();
+          openReportModal(reportId);
+        }
+      } catch (e) {
+        alert('Ошибка: ' + e.message);
+      }
+    }
+
+    // Search and Filters
+    let searchTimer = null;
+    function handleSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyFilters, 250);
+    }
+
+    async function applyFilters() {
+      const search = document.getElementById('search-input').value;
+      const contractorId = document.getElementById('filter-contractor').value;
+      const status = document.getElementById('filter-status').value;
+      const sortBy = document.getElementById('sort-order').value;
+
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (contractorId) params.append('contractorId', contractorId);
+      if (status) params.append('status', status);
+      if (sortBy) params.append('sortBy', sortBy);
+
+      try {
+        const res = await fetch(`/api/reports?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          renderReportsList(data.data);
+        }
+      } catch (e) {}
+    }
+
+    function updateStatsDisplay(stats) {
+      document.getElementById('stat-total').innerText = stats.totalReports || 0;
+      document.getElementById('stat-contractors').innerText = stats.uniqueContractors || 0;
+      document.getElementById('stat-constructions').innerText = stats.uniqueConstructions || 0;
+      document.getElementById('stat-verified').innerText = stats.verifiedReports || 0;
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById('app-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-toast';
+        toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1e2029] border border-white/20 text-white font-bold text-xs px-4 py-2.5 rounded-2xl shadow-2xl transition-all duration-300 pointer-events-none opacity-0';
+        document.body.appendChild(toast);
+      }
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 3000);
+    }
+
+    function exportReportsCSV() {
+      window.location.href = '/api/export/csv';
+    }
+
+    // Start application
+    loadInitialData();
   </script>
 </body>
 </html>

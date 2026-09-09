@@ -1,0 +1,71 @@
+[
+  {
+    "id": "usr_admin",
+    "username": "admin",
+    "name": "Главный Администратор OOH",
+    "role": "admin",
+    "organization": "Единый Центр Мониторинга и Аудита OOH",
+    "inn": "7700000001",
+    "phone": "+7 (800) 555-35-35",
+    "telegramUser": "@ooh_master_admin",
+    "active": true,
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    "description": "Единый наблюдатель: сквозной мониторинг всех поставщиков, папок по месяцам, проверка работы движков и правка значений."
+  },
+  {
+    "id": "usr_kam_01",
+    "username": "sokolova_kam",
+    "name": "Елена Соколова",
+    "role": "kam",
+    "contractorId": "cnt_01",
+    "organization": "ООО «МедиаАутдор Групп»",
+    "inn": "7701928341",
+    "phone": "+7 (495) 789-01-23",
+    "telegramUser": "@sokolova_kam",
+    "active": true,
+    "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80",
+    "description": "КАМ поставщика: единоразово вносит адресную программу конструкций и загружает мастер-файл ТЗ/критериев (ZIP/PDF/макет)."
+  },
+  {
+    "id": "usr_field_01",
+    "username": "abdulaziz",
+    "name": "Абдулазиз Каримов",
+    "role": "field",
+    "contractorId": "cnt_01",
+    "organization": "ООО «МедиаАутдор Групп»",
+    "inn": "7701928341",
+    "phone": "+7 (999) 450-88-21",
+    "telegramUser": "@ooh_abdulaziz",
+    "active": true,
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+    "description": "Полевой специалист поставщика: съемка строго в реальном времени через веб-бот (галерея заблокирована), наложение штампа и отправка в папку месяца."
+  },
+  {
+    "id": "usr_kam_02",
+    "username": "volkov_kam",
+    "name": "Сергей Волков",
+    "role": "kam",
+    "contractorId": "cnt_02",
+    "organization": "ООО «Русс Аутдор Монтаж»",
+    "inn": "7722334455",
+    "phone": "+7 (495) 660-11-22",
+    "telegramUser": "@volkov_kam",
+    "active": true,
+    "avatar": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80",
+    "description": "КАМ поставщика: управление реестром суперсайтов и ТЗ."
+  },
+  {
+    "id": "usr_field_02",
+    "username": "voronov",
+    "name": "Михаил Воронов",
+    "role": "field",
+    "contractorId": "cnt_02",
+    "organization": "ООО «Русс Аутдор Монтаж»",
+    "inn": "7722334455",
+    "phone": "+7 (916) 123-45-67",
+    "telegramUser": "@voronov_m",
+    "active": true,
+    "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
+    "description": "Полевой специалист: фиксация монтажей суперсайтов в реальном времени."
+  }
+]

@@ -1,0 +1,420 @@
+[
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "09.09.2026",
+    "displayTime": "07:40:30",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260909074030.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260909074030.jpg",
+    "stampHash": "OOH-0A58F99338CD2315",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "09.09.2026",
+    "displayTime": "07:40:09",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260909074009.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260909074009.jpg",
+    "stampHash": "OOH-B1D9F7C7489679E9",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "09.09.2026",
+    "displayTime": "07:39:58",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260909073958.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260909073958.jpg",
+    "stampHash": "OOH-D80F5204C5282E16",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "id": "rep_20260908_001",
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "inn": "7701928341",
+      "representative": "Абдулазиз Каримов (Старший мастер)",
+      "phone": "+7 (999) 111-22-33",
+      "telegramUser": "@ooh_abdulaziz"
+    },
+    "location": {
+      "city": "Москва",
+      "district": "САО",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "landmark": "пересечение с ТТК, по направлению в центр",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "geoAccuracyMeters": 4.2
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А (в центр)",
+      "formatSize": "3.0 x 6.0 м",
+      "lightingType": "LED прожекторы"
+    },
+    "timestamp": "2026-09-08T18:45:12.000Z",
+    "displayDate": "08.09.2026",
+    "displayTime": "21:45:12",
+    "campaignName": "Яндекс Маркет — Осенний Фестиваль Скидок",
+    "status": "mounted",
+    "defectDetails": "Полотно натянуто без складок, люверсы закреплены, подсветка проверена",
+    "photos": [
+      "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80"
+    ],
+    "verificationStatus": "verified",
+    "verifiedBy": "Контролер качества Кузнецов Е.",
+    "verifiedAt": "2026-09-08T19:10:00.000Z",
+    "notes": "Монтаж завершен в срок. Фотоотчет дневной и ночной приложен.",
+    "source": "telegram_web_app"
+  },
+  {
+    "id": "rep_20260908_002",
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "inn": "7701928341",
+      "representative": "Абдулазиз Каримов (Старший мастер)",
+      "phone": "+7 (999) 111-22-33",
+      "telegramUser": "@ooh_abdulaziz"
+    },
+    "location": {
+      "city": "Москва",
+      "district": "СЗАО",
+      "address": "МКАД 68-й км, внешняя сторона",
+      "landmark": "съезд на Волоколамское шоссе",
+      "latitude": 55.8451,
+      "longitude": 37.382,
+      "geoAccuracyMeters": 6.1
+    },
+    "construction": {
+      "code": "SS-MOW-0042",
+      "type": "Суперсайт 15х5 м",
+      "side": "Сторона А (по ходу)",
+      "formatSize": "15.0 x 5.0 м",
+      "lightingType": "Внешняя заливающая"
+    },
+    "timestamp": "2026-09-08T22:15:30.000Z",
+    "displayDate": "09.09.2026",
+    "displayTime": "01:15:30",
+    "campaignName": "Сбер — Кредит для Бизнеса 2026",
+    "status": "illumination_ok",
+    "defectDetails": "Подсветка 100% исправна, баннер смонтирован с автовышки",
+    "photos": [
+      "https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&w=800&q=80"
+    ],
+    "verificationStatus": "verified",
+    "verifiedBy": "Автоматический аудит",
+    "verifiedAt": "2026-09-08T22:30:00.000Z",
+    "notes": "Ночная инспекция освещения пройдена успешно.",
+    "source": "telegram_web_app"
+  },
+  {
+    "id": "rep_20260909_001",
+    "contractor": {
+      "id": "cnt_02",
+      "name": "ООО «Русс Аутдор Монтаж»",
+      "inn": "7722334455",
+      "representative": "Михаил Воронов",
+      "phone": "+7 (916) 123-45-67",
+      "telegramUser": "@voronov_m"
+    },
+    "location": {
+      "city": "Москва",
+      "district": "ЗАО",
+      "address": "Кутузовский пр-кт, 22",
+      "landmark": "напротив отеля Рэдиссон Славянская",
+      "latitude": 55.7449,
+      "longitude": 37.5458,
+      "geoAccuracyMeters": 3.8
+    },
+    "construction": {
+      "code": "CB-MOW-0219",
+      "type": "Сити-борд 3.7х2.7 м",
+      "side": "Сторона Б (из центра)",
+      "formatSize": "3.7 x 2.7 м",
+      "lightingType": "Внутренняя динамическая"
+    },
+    "timestamp": "2026-09-09T05:30:00.000Z",
+    "displayDate": "09.09.2026",
+    "displayTime": "08:30:00",
+    "campaignName": "Альфа-Банк — Премиум Инвестиции",
+    "status": "mounted",
+    "defectDetails": "Монтаж скроллерной бумаги выполнен. Механизм прокрутки протестирован",
+    "photos": [
+      "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80"
+    ],
+    "verificationStatus": "pending",
+    "notes": "Ожидает подтверждения куратором направления",
+    "source": "telegram_web_app"
+  },
+  {
+    "id": "rep_20260909_002",
+    "contractor": {
+      "id": "cnt_03",
+      "name": "ИП «Смирнов Наружная Реклама»",
+      "inn": "773344556677",
+      "representative": "Алексей Смирнов",
+      "phone": "+7 (926) 987-65-43",
+      "telegramUser": "@smirnov_outdoor"
+    },
+    "location": {
+      "city": "Санкт-Петербург",
+      "district": "Центральный",
+      "address": "Невский пр-кт, 114",
+      "landmark": "вход в ТК Невский Центр",
+      "latitude": 59.9312,
+      "longitude": 30.3601,
+      "geoAccuracyMeters": 5
+    },
+    "construction": {
+      "code": "MSK-77-001",
+      "type": "Суперсайт 5х15 м",
+      "side": "А1 (Фасадная)",
+      "formatSize": "6.0 x 3.0 м",
+      "lightingType": "Прожекторы LED 400W"
+    },
+    "timestamp": "2026-09-09T06:10:45.000Z",
+    "displayDate": "09.09.2026",
+    "displayTime": "09:10:45",
+    "campaignName": "Федеральная кампания СБЕР 2026 (Редакция Админа)",
+    "status": "defect_reported",
+    "defectDetails": "Левый нижний LED-кабинет 128x128 пикселей мерцает. Заявка отправлена техникам.",
+    "photos": [
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80"
+    ],
+    "verificationStatus": "verified",
+    "notes": "Проверено Главным Администратором, натяжка баннера идеальная | [Аудит]: Объект принят в акт выполненных работ",
+    "source": "telegram_web_app",
+    "lastEditedBy": "Admin (07:28:40)",
+    "verifiedBy": "Главный Администратор OOH",
+    "verificationTimestamp": "2026-09-09T07:28:40.117Z"
+  }
+]

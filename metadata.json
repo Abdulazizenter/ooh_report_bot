@@ -1,8 +1,9 @@
 {
   "name": "OOH Promo Hub",
-  "description": "Telegram Web App promo hub for OOH report submissions and mini-game attempts",
+  "description": "Платформа мониторинга наружной рекламы: профили КАМ и полевого специалиста, фиксация только в реальном времени с камеры (галерея заблокирована), движки автоматической проверки соответствия критериям и авто-сохранение в папки поставщиков по месяцам",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

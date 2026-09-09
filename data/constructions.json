@@ -1,0 +1,64 @@
+[
+  {
+    "code": "BB-MOW-0104",
+    "type": "Билборд 3х6 м",
+    "city": "Москва",
+    "address": "Ленинградский пр-кт, 37",
+    "district": "САО",
+    "side": "Сторона А",
+    "formatSize": "3.0 x 6.0 м",
+    "lightingType": "LED прожекторы",
+    "latitude": 55.751244,
+    "longitude": 37.618423,
+    "activeCampaign": "Текущая кампания",
+    "toleranceMeters": 300
+  },
+  {
+    "code": "SS-MOW-0042",
+    "type": "Суперсайт 15х5 м",
+    "city": "Москва",
+    "address": "МКАД 68-й км, внешняя сторона",
+    "district": "СЗАО",
+    "side": "Сторона А (по ходу)",
+    "formatSize": "15.0 x 5.0 м",
+    "lightingType": "Внешняя заливающая",
+    "latitude": 55.8451,
+    "longitude": 37.382
+  },
+  {
+    "code": "CB-MOW-0219",
+    "type": "Сити-борд 3.7х2.7 м",
+    "city": "Москва",
+    "address": "Кутузовский пр-кт, 22",
+    "district": "ЗАО",
+    "side": "Сторона Б (из центра)",
+    "formatSize": "3.7 x 2.7 м",
+    "lightingType": "Внутренняя динамическая",
+    "latitude": 55.7449,
+    "longitude": 37.5458
+  },
+  {
+    "code": "DS-SPB-0081",
+    "type": "Цифровой экран (DOOH)",
+    "city": "Санкт-Петербург",
+    "address": "Невский пр-кт, 114",
+    "district": "Центральный",
+    "side": "Экран №1 (к площади Восстания)",
+    "formatSize": "6.0 x 3.0 м",
+    "lightingType": "P3.9 Digital LED",
+    "latitude": 59.9312,
+    "longitude": 30.3601
+  },
+  {
+    "code": "CF-TAS-0015",
+    "type": "Сити-формат 1.2х1.8 м",
+    "city": "Ташкент",
+    "address": "ул. Амира Темура, 45",
+    "district": "Юнусабадский",
+    "side": "Сторона А (остановка)",
+    "formatSize": "1.2 x 1.8 м",
+    "lightingType": "LED световой короб",
+    "latitude": 41.3285,
+    "longitude": 69.2811
+  }
+]
