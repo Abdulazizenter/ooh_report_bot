@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>OOH Promo Hub</title>
+  <meta name="description" content="Telegram Web App promo hub for OOH report submissions and mini-game attempts">
+  <meta property="og:title" content="OOH Promo Hub">
+  <meta property="og:description" content="Telegram Web App promo hub for OOH report submissions and mini-game attempts">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -145,13 +148,23 @@
 
     // Вызов нативного сканера камеры
     function triggerScanner() {
-      tg.HapticFeedback.impactOccurred('medium');
-      tg.showScanQrPopup({ text: "Наведите камеру на QR-код паспорта конструкции" }, (qrResult) => {
-        tg.closeScanQrPopup();
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.sendData(JSON.stringify({ qr: qrResult }));
-        return true;
-      });
+      if (tg?.HapticFeedback?.impactOccurred) {
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+      if (typeof tg?.showScanQrPopup === 'function') {
+        tg.showScanQrPopup({ text: "Наведите камеру на QR-код паспорта конструкции" }, (qrResult) => {
+          tg.closeScanQrPopup();
+          if (tg?.HapticFeedback?.notificationOccurred) {
+            tg.HapticFeedback.notificationOccurred('success');
+          }
+          if (typeof tg?.sendData === 'function') {
+            tg.sendData(JSON.stringify({ qr: qrResult }));
+          }
+          return true;
+        });
+      } else {
+        alert("Сканер QR-кода активен в Telegram Web App. В веб-браузере используйте камеру устройства.");
+      }
     }
   </script>
 </body>
