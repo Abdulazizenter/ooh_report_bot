@@ -3,8 +3,21 @@ import stream from 'stream';
 
 export class WorkspaceAdapter {
   constructor(accessToken) {
-    this.auth = new google.auth.OAuth2();
-    this.auth.setCredentials({ access_token: accessToken });
+    // Check if we are running in production with a Service Account
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+      console.log('WorkspaceAdapter: Using Service Account Authentication');
+      this.auth = new google.auth.JWT({
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
+      });
+    } else {
+      // Fallback to client-provided OAuth token (for AI Studio development)
+      console.log('WorkspaceAdapter: Using Client-Provided OAuth Token');
+      this.auth = new google.auth.OAuth2();
+      this.auth.setCredentials({ access_token: accessToken });
+    }
+    
     this.drive = google.drive({ version: 'v3', auth: this.auth });
     this.sheets = google.sheets({ version: 'v4', auth: this.auth });
   }

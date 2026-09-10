@@ -24,6 +24,9 @@ app.use((req, res, next) => {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
     req.workspace = new WorkspaceAdapter(token);
+  } else if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+    // If running in production with Service Account, token is not needed from client
+    req.workspace = new WorkspaceAdapter(null);
   }
   next();
 });
