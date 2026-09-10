@@ -4,7 +4,10 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../../data');
+
+// In Vercel serverless environment, the filesystem is read-only except for /tmp
+const isVercel = process.env.VERCEL === '1';
+const DATA_DIR = isVercel ? '/tmp/data' : path.resolve(__dirname, '../../data');
 const DB_FILE = path.join(DATA_DIR, 'sdip_relational_db.json');
 
 if (!fs.existsSync(DATA_DIR)) {

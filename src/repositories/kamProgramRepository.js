@@ -4,7 +4,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../../data');
+
+const isVercel = process.env.VERCEL === '1';
+const DATA_DIR = isVercel ? '/tmp/data' : path.resolve(__dirname, '../../data');
 const KAM_PROGRAMS_FILE = path.join(DATA_DIR, 'kam_programs.json');
 
 if (!fs.existsSync(DATA_DIR)) {

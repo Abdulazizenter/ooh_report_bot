@@ -4,7 +4,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.resolve(__dirname, '../../data');
+
+const isVercel = process.env.VERCEL === '1';
+const DATA_DIR = isVercel ? '/tmp/data' : path.resolve(__dirname, '../../data');
 const REPORTS_FILE = path.join(DATA_DIR, 'reports.json');
 const CONTRACTORS_FILE = path.join(DATA_DIR, 'contractors.json');
 const CONSTRUCTIONS_FILE = path.join(DATA_DIR, 'constructions.json');

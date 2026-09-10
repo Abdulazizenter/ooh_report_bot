@@ -4,7 +4,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const STORAGE_ROOT = path.resolve(__dirname, '../../storage');
+
+const isVercel = process.env.VERCEL === '1';
+const STORAGE_ROOT = isVercel ? '/tmp/storage' : path.resolve(__dirname, '../../storage');
 
 if (!fs.existsSync(STORAGE_ROOT)) {
   fs.mkdirSync(STORAGE_ROOT, { recursive: true });

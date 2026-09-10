@@ -131,6 +131,46 @@
   ],
   "reports": [
     {
+      "id": "rep_1789020552499_totz",
+      "construction_id": "cst_01",
+      "specialist_id": "usr_spec_01",
+      "supplier_id": "sup_01",
+      "photo_url": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910060912.jpg",
+      "raw_photo_url": null,
+      "gps_lat": 55.7928,
+      "gps_lon": 37.5432,
+      "geo_distance_meters": 0,
+      "status": "APPROVED",
+      "confidence_score": 0.98,
+      "ai_reasoning": "[Mock] Конструкция соответствует эталонному ТЗ (ключ Gemini не настроен).",
+      "detected_issues": [],
+      "stamp_hash": "OOH-3D7C6A566CAD8DC3",
+      "capture_source": "camera_sensor",
+      "captured_at": "2026-09-10T06:09:12.497Z",
+      "created_at": "2026-09-10T06:09:12.499Z"
+    },
+    {
+      "id": "rep_1789020552497_ekhx",
+      "construction_id": "cst_01",
+      "specialist_id": "usr_spec_01",
+      "supplier_id": "sup_01",
+      "photo_url": "",
+      "raw_photo_url": null,
+      "gps_lat": 59.9343,
+      "gps_lon": 30.3351,
+      "geo_distance_meters": 626893,
+      "status": "REJECTED",
+      "confidence_score": 0.98,
+      "ai_reasoning": "Вы находитесь слишком далеко от объекта (626893м). Подойдите ближе к конструкции и переделайте снимок.",
+      "detected_issues": [
+        "Отклонение GPS координат: 626893м от объекта (допустимо до 250м)."
+      ],
+      "stamp_hash": "REJECTED_NO_STAMP",
+      "capture_source": "camera_sensor",
+      "captured_at": "2026-09-10T06:09:12.496Z",
+      "created_at": "2026-09-10T06:09:12.497Z"
+    },
+    {
       "id": "rep_1789019194664_lqsb",
       "construction_id": "cst_01",
       "specialist_id": "usr_spec_01",
