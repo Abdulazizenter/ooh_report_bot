@@ -19,6 +19,516 @@
       "side": "Сторона А",
       "lightingType": "LED прожекторы"
     },
+    "displayDate": "10.09.2026",
+    "displayTime": "04:59:51",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910045951.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260910045951.jpg",
+    "stampHash": "OOH-379CBF081F4A9A77",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "10.09.2026",
+    "displayTime": "04:56:11",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910045611.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260910045611.jpg",
+    "stampHash": "OOH-85DA596BF61ACD13",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "10.09.2026",
+    "displayTime": "04:55:28",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910045528.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260910045528.jpg",
+    "stampHash": "OOH-8083A10BB8D1F79F",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "10.09.2026",
+    "displayTime": "04:42:42",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910044242.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260910044242.jpg",
+    "stampHash": "OOH-FB3C8B28404FDA56",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "10.09.2026",
+    "displayTime": "04:42:20",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910044220.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260910044220.jpg",
+    "stampHash": "OOH-E5E89C79BA1289A0",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
+    "displayDate": "10.09.2026",
+    "displayTime": "04:22:30",
+    "campaignName": "Текущая кампания",
+    "status": "mounted",
+    "defectDetails": "Выявлены отклонения от ТЗ",
+    "notes": "",
+    "verificationStatus": "pending",
+    "verifiedBy": null,
+    "verificationDate": null,
+    "photoUrl": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910042230.jpg",
+    "monthlyStorageFolder": "ООО_МедиаАутдор_Групп/2026-09",
+    "storedFileName": "BB-MOW-0104___________20260910042230.jpg",
+    "stampHash": "OOH-64E31F2262AE81F9",
+    "realTimeCapture": true,
+    "captureSource": "live_camera_stream",
+    "engineEvaluation": {
+      "complianceStatus": "DEVIATION_DETECTED",
+      "isFullyCompliant": false,
+      "checks": [
+        {
+          "id": "CONSTRUCTION_REGISTRY",
+          "label": "Реестр конструкций КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Конструкция BB-MOW-0104 (Билборд 3х6 м) подтверждена в адресной программе."
+        },
+        {
+          "id": "CONSTRUCTION_SIDE",
+          "label": "Соответствие стороны размещения",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Сторона размещения (Сторона А) совпадает с ТЗ."
+        },
+        {
+          "id": "GEO_PROXIMITY",
+          "label": "GPS-привязка к координатам объекта",
+          "passed": false,
+          "severity": "WARNING",
+          "deviationMeters": 6595,
+          "toleranceMeters": 300,
+          "message": "Внимание: отклонение координат 6595м превышает допуск 300м."
+        },
+        {
+          "id": "MASTER_CRITERIA",
+          "label": "Файл требований и критериев КАМ",
+          "passed": true,
+          "severity": "INFO",
+          "message": "Проверено по эталону: «specs_september.zip». Критерии: Фронтальный план, 100% читаемость"
+        }
+      ],
+      "mediaQuality": {
+        "valid": true,
+        "mediaType": "image/jpeg",
+        "sizeBytes": 28,
+        "sizeFormatted": "0.0 КБ",
+        "resolution": "1280x720 (HD)",
+        "sharpnessScore": "89%",
+        "exposureQuality": "NORMAL_DAYLIGHT",
+        "aspectRatio": "16:9",
+        "isAcceptable": true,
+        "verdict": "PASSED_QUALITY_CHECKS"
+      },
+      "realTimeStatus": "VERIFIED_REALTIME"
+    }
+  },
+  {
+    "contractor": {
+      "id": "cnt_01",
+      "name": "ООО «МедиаАутдор Групп»",
+      "representative": "Абдулазиз Каримов",
+      "phone": ""
+    },
+    "location": {
+      "city": "Москва",
+      "address": "Ленинградский пр-кт, 37 к2",
+      "latitude": 55.7928,
+      "longitude": 37.5432,
+      "accuracy": 5
+    },
+    "construction": {
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lightingType": "LED прожекторы"
+    },
     "displayDate": "09.09.2026",
     "displayTime": "08:11:43",
     "campaignName": "Текущая кампания",

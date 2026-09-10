@@ -88,9 +88,9 @@ export class SpartanWorkflowService {
     const isGeoValid = distMeters !== null && distMeters <= tolerance;
 
     // 5. Senior Computer Vision Inspector: inspect photo vs KAM's AI Criteria
-    const cvInspection = MediaAnalysisEngine.inspectFieldReport({
+    const cvInspection = await MediaAnalysisEngine.inspectFieldReport({
       mediaBase64,
-      kamCriteria: [construction.ai_criteria],
+      kamCriteria: construction.ai_criteria,
       constructionCode: construction.code
     });
 
@@ -158,26 +158,52 @@ export class SpartanWorkflowService {
       }
     });
 
-    const storageArtifact = StorageFolderEngine.persistFieldArtifact({
-      contractorName: supplier.folder_path || supplier.name,
-      constructionCode: construction.code,
-      constructionSide: construction.side,
-      reportDate: captureTimestamp || new Date(),
-      mediaBase64,
-      metadata: {
-        stamp,
-        constructionId: construction.id,
-        specialist: user.full_name,
-        aiScore: cvInspection.confidence_score
+    let photoWebPath = '';
+    let storageFolder = '';
+
+    const workspace = arguments[0].workspace;
+
+    if (workspace) {
+      try {
+        const rootFolderId = await workspace.findOrCreateFolder('OOH_PROMO_HUB_STORAGE');
+        const supplierFolderId = await workspace.findOrCreateFolder(supplier.name, rootFolderId);
+        
+        const dateStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+        const monthFolderId = await workspace.findOrCreateFolder(dateStr, supplierFolderId);
+        
+        const fileName = `${construction.code}_${construction.side}_${Date.now()}.jpg`;
+        const driveRes = await workspace.uploadPhotoToFolder(mediaBase64, fileName, monthFolderId);
+        photoWebPath = driveRes.webViewLink;
+        storageFolder = `${supplier.name}/${dateStr}`;
+      } catch (e) {
+        console.warn("Google Drive upload failed, falling back to local:", e);
       }
-    });
+    }
+
+    if (!photoWebPath) {
+      const storageArtifact = StorageFolderEngine.persistFieldArtifact({
+        contractorName: supplier.folder_path || supplier.name,
+        constructionCode: construction.code,
+        constructionSide: construction.side,
+        reportDate: captureTimestamp || new Date(),
+        mediaBase64,
+        metadata: {
+          stamp,
+          constructionId: construction.id,
+          specialist: user.full_name,
+          aiScore: cvInspection.confidence_score
+        }
+      });
+      photoWebPath = storageArtifact.relativeWebPath;
+      storageFolder = storageArtifact.relativeFolder;
+    }
 
     // 8. Write to Relational Reports table
     const savedReport = databaseRepository.saveReport({
       construction_id: construction.id,
       specialist_id: user.id,
       supplier_id: construction.supplier_id,
-      photo_url: storageArtifact.relativeWebPath,
+      photo_url: photoWebPath,
       raw_photo_url: null,
       gps_lat: currentLat,
       gps_lon: currentLon,
@@ -191,13 +217,36 @@ export class SpartanWorkflowService {
       captured_at: captureTimestamp || new Date().toISOString()
     });
 
+    if (workspace) {
+      try {
+        const ssId = await workspace.findOrCreateDatabaseSpreadsheet();
+        await workspace.appendRow(ssId, 'Reports', {
+          id: savedReport.id,
+          constructionId: savedReport.construction_id,
+          contractorId: savedReport.supplier_id,
+          telegram_id: user.telegram_id,
+          displayDate: new Date(savedReport.captured_at).toLocaleDateString('ru-RU'),
+          displayTime: new Date(savedReport.captured_at).toLocaleTimeString('ru-RU'),
+          status: savedReport.status,
+          verificationStatus: 'VERIFIED',
+          photo_url: photoWebPath,
+          stamp_hash: savedReport.stamp_hash,
+          ai_criteria: construction.ai_criteria,
+          issues: savedReport.detected_issues.join(', '),
+          reasoning: savedReport.ai_reasoning
+        });
+      } catch (e) {
+        console.warn("Failed to sync report to Google Sheets:", e);
+      }
+    }
+
     return {
       status: 'APPROVED',
       confidence_score: cvInspection.confidence_score,
       detected_issues: [],
       reasoning: cvInspection.reasoning,
-      photo_url: storageArtifact.relativeWebPath,
-      storage_folder: storageArtifact.relativeFolder,
+      photo_url: photoWebPath,
+      storage_folder: storageFolder,
       stamp_hash: stamp.stampHash,
       report_id: savedReport.id,
       construction_code: construction.code,

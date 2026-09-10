@@ -220,6 +220,16 @@ export class DatabaseRepository {
     return this.getUsers().find(u => Number(u.telegram_id) === tid) || null;
   }
 
+  saveUser(user) {
+    const db = this._readDb();
+    if (!db.users) db.users = [];
+    const idx = db.users.findIndex(u => u.id === user.id);
+    if (idx >= 0) db.users[idx] = user;
+    else db.users.push(user);
+    this._writeDb(db);
+    return user;
+  }
+
   // --- 2. SUPPLIERS ---
   getSuppliers() {
     return this._readDb().suppliers || [];

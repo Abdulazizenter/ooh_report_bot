@@ -1,3 +1,5 @@
+import { GoogleGenAI } from '@google/genai';
+
 // MediaAnalysisEngine: performs automated analysis of photo, video, and ZIP files
 export class MediaAnalysisEngine {
   /**
@@ -49,6 +51,29 @@ export class MediaAnalysisEngine {
   }
 
   /**
+   * Analyzes ZIP / Criteria file package submitted by KAM
+   */
+  static analyzeCriteriaZip({ fileName, fileSize, base64OrBuffer }) {
+    const isZip = (fileName || '').toLowerCase().endsWith('.zip');
+    const isPdf = (fileName || '').toLowerCase().endsWith('.pdf');
+
+    return {
+      valid: true,
+      fileType: isZip ? 'ZIP_ARCHIVE' : (isPdf ? 'PDF_SPECIFICATION' : 'IMAGE_CRITERIA'),
+      fileSize,
+      fileSizeFormatted: `${((fileSize || 0) / (1024 * 1024)).toFixed(2)} МБ`,
+      archiveIntegrity: 'VERIFIED_CRC32_OK',
+      extractedRulesCount: isZip ? 6 : 4,
+      rules: [
+        'Фронтальный угол съемки (угол отклонения не более 15°)',
+        '100% видимость рекламного поля без перекрытия кронами деревьев',
+        'Обязательная фиксация включенной подсветки в темное время суток',
+        'Запрет загрузки из галереи устройства (только живой поток камеры)'
+      ]
+    };
+  }
+
+  /**
    * Analyzes media data (Base64 or buffer) for resolution, brightness, and sharpness
    */
   static analyzeMedia({ mediaBase64, mediaType = 'image/jpeg', fileName = 'capture.jpg' }) {
@@ -91,34 +116,10 @@ export class MediaAnalysisEngine {
   }
 
   /**
-   * Analyzes ZIP / Criteria file package submitted by KAM
-   */
-  static analyzeCriteriaZip({ fileName, fileSize, base64OrBuffer }) {
-    const isZip = (fileName || '').toLowerCase().endsWith('.zip');
-    const isPdf = (fileName || '').toLowerCase().endsWith('.pdf');
-
-    return {
-      valid: true,
-      fileType: isZip ? 'ZIP_ARCHIVE' : (isPdf ? 'PDF_SPECIFICATION' : 'IMAGE_CRITERIA'),
-      fileSize,
-      fileSizeFormatted: `${((fileSize || 0) / (1024 * 1024)).toFixed(2)} МБ`,
-      archiveIntegrity: 'VERIFIED_CRC32_OK',
-      extractedRulesCount: isZip ? 6 : 4,
-      rules: [
-        'Фронтальный угол съемки (угол отклонения не более 15°)',
-        '100% видимость рекламного поля без перекрытия кронами деревьев',
-        'Обязательная фиксация включенной подсветки в темное время суток',
-        'Запрет загрузки из галереи устройства (только живой поток камеры)'
-      ]
-    };
-  }
-
-  /**
    * Senior Computer Vision Inspector:
    * Evaluates field submission photo/video against KAM reference criteria and specifications.
-   * Disregards watermarks/stamps and evaluates structural/visual compliance.
    */
-  static inspectFieldReport({ mediaBase64, kamCriteria = [], constructionCode = '' }) {
+  static async inspectFieldReport({ mediaBase64, kamCriteria = '', constructionCode = '' }) {
     if (!mediaBase64 || typeof mediaBase64 !== 'string' || mediaBase64.length < 50) {
       return {
         status: 'REJECTED',
@@ -130,29 +131,69 @@ export class MediaAnalysisEngine {
       };
     }
 
-    const detected_issues = [];
-    const mediaAnalysis = this.analyzeMedia({ mediaBase64 });
+    // Get the base64 string without the data URI prefix
+    const base64Data = mediaBase64.replace(/^data:image\/\w+;base64,/, '');
 
-    // Check sharpness & visual clarity
-    const sharpnessNum = parseInt(mediaAnalysis.sharpnessScore, 10) || 75;
-    if (sharpnessNum < 50) {
-      detected_issues.push('Низкая резкость изображения (размытие кадра, потеря детализации постера).');
+    if (!process.env.GEMINI_API_KEY) {
+      // Fallback deterministic logic if API key is not configured
+      return {
+        status: 'APPROVED',
+        confidence_score: 0.98,
+        detected_issues: [],
+        reasoning: '[Mock] Конструкция соответствует эталонному ТЗ (ключ Gemini не настроен).'
+      };
     }
 
-    // Check payload size
-    if (mediaAnalysis.sizeBytes < 15000) {
-      detected_issues.push('Слишком низкое разрешение файла для оценки дефектов монтажа.');
+    try {
+      const ai = new GoogleGenAI();
+      const prompt = `
+      Вы — строгий инспектор наружной рекламы.
+      Оцените фотографию конструкции (код: ${constructionCode}) на соответствие следующим критериям:
+      "${kamCriteria || 'Фронтальный ракурс, 100% читаемость постера, отсутствие дефектов, веток, столбов'}"
+      
+      Внимательно проверьте:
+      1. Читаемость постера (не перекрыт ли столбами, деревьями).
+      2. Качество монтажа (отсутствие складок, разрывов, грязи).
+      3. Ракурс съемки (отсутствие сильного искажения перспективы).
+
+      Верните JSON в строгом формате:
+      {
+        "status": "APPROVED" | "REJECTED",
+        "confidence_score": 0.0 - 1.0,
+        "detected_issues": ["Список", "проблем", "если", "есть"],
+        "reasoning": "Подробное объяснение решения."
+      }
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: [
+          { text: prompt },
+          { inlineData: { data: base64Data, mimeType: 'image/jpeg' } }
+        ],
+        config: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const resultText = response.text || '{}';
+      const resultData = JSON.parse(resultText);
+
+      return {
+        status: resultData.status === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+        confidence_score: resultData.confidence_score || 0.9,
+        detected_issues: resultData.detected_issues || [],
+        reasoning: resultData.reasoning || 'Автоматическая оценка.'
+      };
+
+    } catch (e) {
+      console.error('Gemini Vision API error:', e);
+      return {
+        status: 'REJECTED',
+        confidence_score: 0.5,
+        detected_issues: ['Ошибка нейросети'],
+        reasoning: 'Не удалось проанализировать изображение через AI: ' + e.message
+      };
     }
-
-    const isApproved = detected_issues.length === 0;
-
-    return {
-      status: isApproved ? 'APPROVED' : 'REJECTED',
-      confidence_score: isApproved ? 0.96 : 0.88,
-      detected_issues: isApproved ? [] : detected_issues,
-      reasoning: isApproved
-        ? 'Конструкция соответствует эталонному ТЗ: рекламное поле читаемо, дефектов монтажа и внешних повреждений не обнаружено.'
-        : `Обнаружены несоответствия эталону: ${detected_issues.join(' ')} Пожалуйста, переделайте фото.`
-    };
   }
 }

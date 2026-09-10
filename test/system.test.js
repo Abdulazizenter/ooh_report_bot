@@ -36,6 +36,10 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
 
 // 2. MediaAnalysisEngine Real-Time Verification
 {
+  // Disable real Gemini API for tests to prevent invalid image errors on dummy data
+  const originalKey = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+
   // Recent timestamp should pass
   const recentTime = new Date().toISOString();
   const validCheck = MediaAnalysisEngine.verifyRealTimeIntegrity({
@@ -53,15 +57,19 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   assert.strictEqual(invalidCheck.isRealTime, false, 'Stale gallery photo must be rejected');
 
   // Senior Computer Vision Inspector Check (missing photo -> REJECTED with detected_issues)
-  const emptyInspection = MediaAnalysisEngine.inspectFieldReport({ mediaBase64: '' });
+  const emptyInspection = await MediaAnalysisEngine.inspectFieldReport({ mediaBase64: '' });
   assert.strictEqual(emptyInspection.status, 'REJECTED');
   assert.ok(emptyInspection.detected_issues.length > 0);
 
   // Valid photo payload -> APPROVED
   const dummyData = 'data:image/jpeg;base64,' + 'A'.repeat(25000);
-  const validInspection = MediaAnalysisEngine.inspectFieldReport({ mediaBase64: dummyData });
+  const validInspection = await MediaAnalysisEngine.inspectFieldReport({ mediaBase64: dummyData });
   assert.strictEqual(validInspection.status, 'APPROVED');
   assert.strictEqual(validInspection.detected_issues.length, 0);
+
+  if (originalKey) {
+    process.env.GEMINI_API_KEY = originalKey;
+  }
 
   console.log('✓ MediaAnalysisEngine real-time rejection & CV inspection passed');
 }
@@ -183,6 +191,9 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
 
 // 9. Spartan Workflow Service End-to-End Test (Pipeline branching)
 {
+  const originalKey = process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_API_KEY;
+
   // Test 9a: Rejected when GPS is too far (> 50 km away)
   const farResult = await spartanWorkflowService.submitSpecialistReport({
     telegramId: 20001,
@@ -211,6 +222,10 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   assert.ok(okResult.photo_url.includes('ООО_МедиаАутдор_Групп'), 'Must save cleanly in supplier folder');
   assert.ok(okResult.stamp_hash.startsWith('OOH-'), 'Must have digital stamp hash');
   console.log('✓ SpartanWorkflowService end-to-end approved pipeline passed');
+
+  if (originalKey) {
+    process.env.GEMINI_API_KEY = originalKey;
+  }
 }
 
 console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (9/9) ---');

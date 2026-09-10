@@ -8,6 +8,7 @@
   <meta property="og:title" content="OOH Promo Hub">
   <meta property="og:description" content="Платформа мониторинга наружной рекламы: профили КАМ и полевого специалиста, фиксация только в реальном времени с камеры (галерея заблокирована), движки автоматической проверки соответствия критериям и авто-сохранение в папки поставщиков по месяцам">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -66,6 +67,16 @@
         <span id="header-user-role-badge" class="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30">АДМИН</span>
         <span id="header-user-name" class="font-bold text-white max-w-[110px] truncate sm:max-w-none">Администратор</span>
         <span class="text-neutral-400 text-[10px]">▼</span>
+      </button>
+
+      <button id="btn-sync-cloud" onclick="triggerCloudSync()" class="flex items-center gap-1 bg-green-600/90 hover:bg-green-500 text-white px-2.5 py-1.5 rounded-xl border border-green-500/30 text-xs font-semibold active:scale-95 transition hidden" title="Синхронизировать локальную БД с Google Sheets">
+        <span>🔄</span>
+        <span class="hidden sm:inline">Sync Sheets</span>
+      </button>
+
+      <button id="btn-google-auth" onclick="requestGoogleToken()" class="flex items-center gap-1 bg-blue-600/90 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded-xl border border-blue-500/30 text-xs font-semibold active:scale-95 transition hidden" title="Авторизация Google Workspace">
+        <span>G</span>
+        <span class="hidden sm:inline">Drive</span>
       </button>
 
       <button id="btn-export-csv" onclick="exportReportsCSV()" class="flex items-center gap-1 bg-[#1e2029] hover:bg-[#252834] text-neutral-200 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs font-semibold active:scale-95 transition" title="Выгрузить в Excel / CSV">
@@ -765,17 +776,99 @@
     let capturedPhotoBase64 = null;
     let kamUploadedMasterFile = null;
 
+    let googleAuthClient = null;
+    let googleAccessToken = localStorage.getItem('google_access_token') || null;
+
+    async function triggerCloudSync() {
+      if (!googleAccessToken) {
+        showToast('⚠️ Необходимо авторизоваться в Google Workspace!');
+        return;
+      }
+      
+      const btn = document.getElementById('btn-sync-cloud');
+      const prevHtml = btn.innerHTML;
+      btn.innerHTML = '<span>⏳</span><span class="hidden sm:inline">Syncing...</span>';
+      btn.disabled = true;
+
+      try {
+        const syncRes = await fetch('/api/v2/sync', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+        });
+        const syncData = await syncRes.json();
+        if (syncData.success) {
+          showToast('✅ ' + (syncData.message || 'БД успешно синхронизирована с Google Sheets!'));
+          // Reload data after sync
+          loadInitialData();
+        } else {
+          showToast('⚠️ Ошибка синхронизации БД: ' + (syncData.error || ''));
+        }
+      } catch(e) {
+        console.error(e);
+        showToast('⚠️ Ошибка сети при синхронизации');
+      } finally {
+        btn.innerHTML = prevHtml;
+        btn.disabled = false;
+      }
+    }
+
     // Initialize application
     async function loadInitialData() {
       try {
+        const confRes = await fetch('/api/config');
+        const config = await confRes.json();
+        
+        if (config.googleClientId && window.google) {
+          googleAuthClient = google.accounts.oauth2.initTokenClient({
+            client_id: config.googleClientId,
+            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+            callback: async (response) => {
+              if (response && response.access_token) {
+                googleAccessToken = response.access_token;
+                localStorage.setItem('google_access_token', googleAccessToken);
+                document.getElementById('btn-google-auth').classList.add('hidden');
+                document.getElementById('btn-sync-cloud').classList.remove('hidden');
+                showToast('✅ Google Workspace подключен. Синхронизация БД...');
+                try {
+                  const syncRes = await fetch('/api/v2/sync', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+                  });
+                  const syncData = await syncRes.json();
+                  if (syncData.success) {
+                    showToast('✅ БД успешно синхронизирована с Google Sheets!');
+                    // Reload data after sync
+                    loadInitialData();
+                  } else {
+                    showToast('⚠️ Ошибка синхронизации БД');
+                  }
+                } catch(e) {
+                  console.error(e);
+                  showToast('⚠️ Ошибка сети при синхронизации');
+                }
+              }
+            }
+          });
+          
+          if (!googleAccessToken) {
+            document.getElementById('btn-google-auth').classList.remove('hidden');
+          } else {
+            document.getElementById('btn-sync-cloud').classList.remove('hidden');
+          }
+        } else if (googleAccessToken) {
+          document.getElementById('btn-sync-cloud').classList.remove('hidden');
+        }
+
+        const headers = googleAccessToken ? { 'Authorization': `Bearer ${googleAccessToken}` } : {};
+
         const [usersRes, reportsRes, contractorsRes, constRes, statsRes, kamRes, archRes] = await Promise.all([
-          fetch('/api/users').then(r => r.json()),
-          fetch('/api/reports?sortBy=contractor_hierarchy').then(r => r.json()),
-          fetch('/api/contractors').then(r => r.json()),
-          fetch('/api/constructions').then(r => r.json()),
-          fetch('/api/stats').then(r => r.json()),
-          fetch('/api/kam/programs').then(r => r.json()),
-          fetch('/api/archive/folders').then(r => r.json())
+          fetch('/api/users', { headers }).then(r => r.json()),
+          fetch('/api/reports?sortBy=contractor_hierarchy', { headers }).then(r => r.json()),
+          fetch('/api/contractors', { headers }).then(r => r.json()),
+          fetch('/api/constructions', { headers }).then(r => r.json()),
+          fetch('/api/stats', { headers }).then(r => r.json()),
+          fetch('/api/kam/programs', { headers }).then(r => r.json()),
+          fetch('/api/archive/folders', { headers }).then(r => r.json())
         ]);
 
         if (usersRes.success) usersData = usersRes.data;
@@ -803,16 +896,64 @@
       }
     }
 
-    function initCurrentUser() {
-      const savedUserId = localStorage.getItem('ooh_active_user_id');
-      if (savedUserId) {
-        currentUser = usersData.find(u => u.id === savedUserId);
+    function requestGoogleToken() {
+      if (googleAuthClient) {
+        googleAuthClient.requestAccessToken();
       }
+    }
+
+    async function initCurrentUser() {
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        const tgUser = tg.initDataUnsafe?.user;
+        if (tgUser) {
+          // Send Telegram user to backend for automated registration/lookup
+          try {
+            const headers = googleAccessToken ? { 'Authorization': `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+            const authRes = await fetch(`/api/v2/user/auth`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ telegram_user: tgUser })
+            });
+            const authData = await authRes.json();
+            if (authData.success) {
+              currentUser = authData.user;
+              // If user was newly created or loaded, ensure it's in usersData
+              if (!usersData.find(u => u.id === currentUser.id)) {
+                usersData.push(currentUser);
+              }
+            }
+          } catch (e) {
+            console.warn('Telegram auth error:', e);
+          }
+          
+          if (!currentUser) {
+            currentUser = usersData.find(u => u.telegram_id === tgUser.id || u.name.includes(tgUser.first_name));
+          }
+        }
+      }
+
+      if (!currentUser) {
+        const savedUserId = localStorage.getItem('ooh_active_user_id');
+        if (savedUserId) {
+          currentUser = usersData.find(u => u.id === savedUserId);
+        }
+      }
+
       if (!currentUser) {
         // Default to field specialist to show real-time camera immediately
         currentUser = usersData.find(u => u.role === 'field') || usersData[0];
       }
+
       updateUserUIState();
+
+      // Auto-route based on role in Telegram Web App context
+      if (tg && tg.initDataUnsafe?.user) {
+        if (currentUser.role === 'field') switchTab('webbot');
+        else if (currentUser.role === 'kam') switchTab('kam');
+        else if (currentUser.role === 'admin') switchTab('archive');
+      }
     }
 
     function updateUserUIState() {
@@ -1875,9 +2016,10 @@
       reader.onload = async function(e) {
         const photoBase64 = e.target.result;
         try {
+          const headers = googleAccessToken ? { 'Authorization': `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
           const res = await fetch('/api/v2/specialist/report', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               telegramId: currentUser?.telegram_id || 20001,
               constructionId: currentSpartanConstruction?.id || 'cst_01',

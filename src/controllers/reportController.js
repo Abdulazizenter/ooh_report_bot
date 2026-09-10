@@ -157,4 +157,34 @@ export class ReportController {
       res.status(400).json({ success: false, error: err.message });
     }
   }
+
+  static exportCSV(req, res) {
+    try {
+      const reports = reportService.getAllReports();
+      
+      const csvHeader = 'ID,Contractor,Representative,City,Address,Code,Side,Type,Lighting,Date,Time,Status,Verification,Hash,PhotoURL\n';
+      const csvRows = reports.map(r => {
+        const contractorName = (r.contractor?.name || '').replace(/,/g, '');
+        const repName = (r.contractor?.representative || '').replace(/,/g, '');
+        const city = (r.location?.city || '').replace(/,/g, '');
+        const address = (r.location?.address || '').replace(/,/g, '');
+        const code = r.construction?.code || '';
+        const side = r.construction?.side || '';
+        const type = r.construction?.type || '';
+        const light = r.construction?.lightingType || '';
+        const photoUrl = r.photoUrl || (r.photos && r.photos[0]) || '';
+        
+        return `${r.id},${contractorName},${repName},${city},${address},${code},${side},${type},${light},${r.displayDate},${r.displayTime},${r.status},${r.verificationStatus},${r.stampHash || ''},${photoUrl}`;
+      });
+
+      const csvData = csvHeader + csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="ooh_reports_export.csv"');
+      res.status(200).send(Buffer.from('\uFEFF' + csvData, 'utf-8')); // Add BOM for Excel
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
 }
+
