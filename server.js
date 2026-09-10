@@ -5,6 +5,7 @@ import { ReportController } from './src/controllers/reportController.js';
 import { KamProgramController } from './src/controllers/kamProgramController.js';
 import { FieldReportController } from './src/controllers/fieldReportController.js';
 import { ArchiveController } from './src/controllers/archiveController.js';
+import { SpartanController } from './src/controllers/spartanController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +46,13 @@ app.post('/api/field/reports', FieldReportController.submitRealTimeReport);
 
 // Monthly Archive Folders Explorer
 app.get('/api/archive/folders', ArchiveController.getFolders);
+
+// --- SPARTAN RELATIONAL WORKFLOW API (Telegram Web App) ---
+app.get('/api/v2/user/:telegramId', SpartanController.getUserProfile);
+app.get('/api/v2/specialist/nearby', SpartanController.getNearbyConstructions);
+app.post('/api/v2/specialist/report', SpartanController.submitSpecialistReport);
+app.get('/api/v2/kam/dashboard', SpartanController.getKamDashboard);
+app.post('/api/v2/kam/upload-tz', SpartanController.uploadKamTz);
 
 // Serve static files from root directory
 app.use(express.static(__dirname));

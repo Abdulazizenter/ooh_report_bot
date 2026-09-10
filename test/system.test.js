@@ -6,6 +6,8 @@ import { StorageFolderEngine } from '../src/engines/storageFolderEngine.js';
 import { kamProgramService } from '../src/services/kamProgramService.js';
 import { fieldReportService } from '../src/services/fieldReportService.js';
 import { archiveService } from '../src/services/archiveService.js';
+import { databaseRepository } from '../src/repositories/databaseRepository.js';
+import { spartanWorkflowService } from '../src/services/spartanWorkflowService.js';
 
 console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
 
@@ -153,4 +155,62 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log('✓ ArchiveService directory scanning passed');
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (7/7) ---');
+// 8. Relational Database Repository Test (4 Core Tables: Suppliers, Users, Constructions, Reports)
+{
+  const suppliers = databaseRepository.getSuppliers();
+  assert.ok(suppliers.length >= 2, 'Suppliers table must have entries');
+
+  const users = databaseRepository.getUsers();
+  assert.ok(users.some(u => u.role === 'KAM'), 'Must have KAM user');
+  assert.ok(users.some(u => u.role === 'Specialist'), 'Must have Specialist user');
+
+  const constructions = databaseRepository.getConstructions();
+  assert.ok(constructions.length >= 3, 'Constructions table must have entries');
+
+  const nearby = databaseRepository.getNearbyConstructions({
+    latitude: 55.7928,
+    longitude: 37.5432
+  });
+  assert.ok(nearby.length > 0, 'Nearby constructions must be returned');
+  assert.strictEqual(nearby[0].code, 'BB-MOW-0104', 'Exact coord match must be first item (0m distance)');
+  assert.strictEqual(nearby[0].distance_meters, 0);
+
+  const kamDash = databaseRepository.getKamDashboard('2026-09');
+  assert.ok(Array.isArray(kamDash), 'KAM dashboard must return array of supplier progress');
+  assert.ok(kamDash[0].progress_text.includes('Сдано'), 'Dashboard must format progress text');
+  console.log('✓ DatabaseRepository 4-table relational model & geo-proximity passed');
+}
+
+// 9. Spartan Workflow Service End-to-End Test (Pipeline branching)
+{
+  // Test 9a: Rejected when GPS is too far (> 50 km away)
+  const farResult = await spartanWorkflowService.submitSpecialistReport({
+    telegramId: 20001,
+    constructionId: 'cst_01',
+    mediaBase64: 'data:image/jpeg;base64,' + 'A'.repeat(25000),
+    latitude: 59.9343, // Saint Petersburg (far away from Moscow)
+    longitude: 30.3351,
+    captureTimestamp: new Date().toISOString(),
+    captureSource: 'camera_sensor'
+  });
+  assert.strictEqual(farResult.status, 'REJECTED', 'Far GPS report must be rejected');
+  assert.ok(farResult.detected_issues.length > 0, 'Must provide issue description');
+  console.log('✓ SpartanWorkflowService GPS deviation rejection passed');
+
+  // Test 9b: Approved when at location (< tolerance) with valid camera capture
+  const okResult = await spartanWorkflowService.submitSpecialistReport({
+    telegramId: 20001,
+    constructionId: 'cst_01',
+    mediaBase64: 'data:image/jpeg;base64,' + 'A'.repeat(25000),
+    latitude: 55.7928,
+    longitude: 37.5432,
+    captureTimestamp: new Date().toISOString(),
+    captureSource: 'camera_sensor'
+  });
+  assert.strictEqual(okResult.status, 'APPROVED', 'Nearby valid report must be approved');
+  assert.ok(okResult.photo_url.includes('ООО_МедиаАутдор_Групп'), 'Must save cleanly in supplier folder');
+  assert.ok(okResult.stamp_hash.startsWith('OOH-'), 'Must have digital stamp hash');
+  console.log('✓ SpartanWorkflowService end-to-end approved pipeline passed');
+}
+
+console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (9/9) ---');
