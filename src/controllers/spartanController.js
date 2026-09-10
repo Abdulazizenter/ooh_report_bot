@@ -206,4 +206,32 @@ export class SpartanController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  static async adminClearDatabase(req, res) {
+    try {
+      databaseRepository.clearDb();
+      res.json({ success: true, message: 'Локальная база данных успешно очищена' });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async adminImportConstructions(req, res) {
+    try {
+      const { constructions } = req.body;
+      if (!constructions || !Array.isArray(constructions)) {
+        return res.status(400).json({ success: false, error: 'Ожидается массив constructions' });
+      }
+      const db = databaseRepository._readDb();
+      db.constructions = constructions.map(c => ({
+        id: `cst_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        ...c,
+        created_at: new Date().toISOString()
+      }));
+      databaseRepository._writeDb(db);
+      res.json({ success: true, message: `Успешно загружено ${constructions.length} конструкций` });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
 }

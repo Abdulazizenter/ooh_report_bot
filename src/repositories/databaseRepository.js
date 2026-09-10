@@ -206,6 +206,17 @@ export class DatabaseRepository {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
   }
 
+  clearDb() {
+    const emptyDb = {
+      suppliers: [],
+      users: [],
+      constructions: [],
+      reports: []
+    };
+    this._writeDb(emptyDb);
+    return emptyDb;
+  }
+
   // --- 1. USERS ---
   getUsers() {
     return this._readDb().users || [];

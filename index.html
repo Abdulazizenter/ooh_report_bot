@@ -63,10 +63,10 @@
     </div>
     <div class="flex items-center gap-1.5">
       <!-- Profile Switcher Button -->
-      <button id="btn-profile-badge" onclick="openProfileSwitchModal()" class="flex items-center gap-1.5 bg-[#181a24] hover:bg-[#222533] border border-white/10 text-neutral-200 px-2 py-1.5 rounded-xl text-[11px] font-semibold active:scale-95 transition" title="Сменить пользователя (КАМ, Полевой специалист, Админ)">
+      <button id="btn-profile-badge" onclick="openProfileSwitchModal()" class="flex items-center gap-1.5 bg-[#181a24] hover:bg-[#222533] border border-white/10 text-neutral-200 px-2 py-1.5 rounded-xl text-[11px] font-semibold active:scale-95 transition cursor-pointer" title="Сменить пользователя (КАМ, Полевой специалист, Админ)">
         <span id="header-user-role-badge" class="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30">АДМИН</span>
         <span id="header-user-name" class="font-bold text-white max-w-[110px] truncate sm:max-w-none">Администратор</span>
-        <span class="text-neutral-400 text-[10px]">▼</span>
+        <span id="btn-profile-badge-chevron" class="text-neutral-400 text-[10px]">▼</span>
       </button>
 
       <button id="btn-sync-cloud" onclick="triggerCloudSync()" class="flex items-center gap-1 bg-green-600/90 hover:bg-green-500 text-white px-2.5 py-1.5 rounded-xl border border-green-500/30 text-xs font-semibold active:scale-95 transition hidden" title="Синхронизировать локальную БД с Google Sheets">
@@ -107,18 +107,21 @@
   </div>
 
   <!-- MAIN TAB SWITCHER (4 FOCUSED WORKFLOW TABS) -->
-  <div id="tab-nav" class="grid grid-cols-4 gap-1 p-1 bg-[#15161e] border border-white/10 rounded-2xl mb-3 text-[11px] font-bold">
-    <button id="tab-btn-webbot" onclick="switchTab('webbot')" class="py-2 rounded-xl text-center transition bg-red-600 text-white shadow truncate px-1">
+  <div id="tab-nav" class="flex gap-1 p-1 bg-[#15161e] border border-white/10 rounded-2xl mb-3 text-[11px] font-bold overflow-x-auto">
+    <button id="tab-btn-webbot" onclick="switchTab('webbot')" class="flex-1 py-2 rounded-xl text-center transition bg-red-600 text-white shadow truncate px-1">
       📱 Веб-бот
     </button>
-    <button id="tab-btn-kam" onclick="switchTab('kam')" class="py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+    <button id="tab-btn-kam" onclick="switchTab('kam')" class="flex-1 py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
       💼 КАМ
     </button>
-    <button id="tab-btn-archive" onclick="switchTab('archive')" class="py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+    <button id="tab-btn-archive" onclick="switchTab('archive')" class="flex-1 py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
       📁 Архивы
     </button>
-    <button id="tab-btn-reports" onclick="switchTab('reports')" class="py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+    <button id="tab-btn-reports" onclick="switchTab('reports')" class="flex-1 py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
       📋 Реестр
+    </button>
+    <button id="tab-btn-admin" onclick="switchTab('admin')" class="flex-1 py-2 rounded-xl text-center transition text-neutral-400 hover:text-white truncate px-1">
+      ⚙️ Админ
     </button>
   </div>
 
@@ -520,6 +523,33 @@
   </section>
 
   <!-- ============================================================ -->
+  <!-- TAB 5: ADMIN PANEL (АДМИН ПАНЕЛЬ) -->
+  <!-- ============================================================ -->
+  <section id="tab-content-admin" class="hidden space-y-3">
+    <div class="glass-card rounded-2xl p-4 space-y-4">
+      <div>
+        <h2 class="text-sm font-black uppercase text-white mb-1">Управление базой данных</h2>
+        <p class="text-xs text-neutral-400">Сброс данных и загрузка реестра</p>
+      </div>
+      
+      <div class="space-y-3">
+        <div class="p-3 bg-red-950/30 border border-red-500/20 rounded-xl">
+          <h3 class="text-xs font-bold text-red-400 mb-1">Очистить базу данных (Сброс моков)</h3>
+          <p class="text-[10px] text-neutral-400 mb-2">Удалить все тестовые данные (пользователи, конструкции, отчеты). Осторожно!</p>
+          <button onclick="clearDatabase()" class="w-full py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg transition">Очистить БД</button>
+        </div>
+
+        <div class="p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-xl">
+          <h3 class="text-xs font-bold text-emerald-400 mb-1">Импорт конструкций (JSON массив)</h3>
+          <p class="text-[10px] text-neutral-400 mb-2">Вставьте JSON массив с объектами конструкций для загрузки в базу (code, type, supplier_id, address_location, latitude, longitude, ai_criteria).</p>
+          <textarea id="import-constructions-json" class="w-full h-24 bg-black/50 border border-white/10 rounded-lg text-[10px] p-2 text-white font-mono mb-2" placeholder='[{"supplier_id": "sup_01", "code": "BB-01", "type": "Билборд", "address_location": "Москва", "latitude": 55.75, "longitude": 37.61, "ai_criteria": "..."}]'></textarea>
+          <button onclick="importConstructions()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition">Импортировать</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
   <!-- TAB 4: REPORTS REGISTRY & ADMIN AUDIT (СВОДНЫЙ РЕЕСТР) -->
   <!-- ============================================================ -->
   <section id="tab-content-reports" class="hidden space-y-3">
@@ -812,6 +842,44 @@
       }
     }
 
+    async function clearDatabase() {
+      if (!confirm('Вы уверены? Это удалит все данные из локальной БД.')) return;
+      try {
+        const res = await fetch('/api/v2/admin/clear-db', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ База данных очищена!');
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          showToast('⚠️ Ошибка: ' + data.error);
+        }
+      } catch (e) {
+        showToast('⚠️ Ошибка сети');
+      }
+    }
+
+    async function importConstructions() {
+      const val = document.getElementById('import-constructions-json').value;
+      if (!val) return;
+      try {
+        const arr = JSON.parse(val);
+        const res = await fetch('/api/v2/admin/import-constructions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ constructions: arr })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('✅ ' + data.message);
+          setTimeout(() => location.reload(), 1000);
+        } else {
+          showToast('⚠️ Ошибка: ' + data.error);
+        }
+      } catch (e) {
+        showToast('⚠️ Ошибка парсинга JSON или сети');
+      }
+    }
+
     // Initialize application
     async function loadInitialData() {
       try {
@@ -851,7 +919,9 @@
           });
           
           if (!googleAccessToken) {
-            document.getElementById('btn-google-auth').classList.remove('hidden');
+            if (!window.Telegram?.WebApp || Object.keys(window.Telegram.WebApp.initDataUnsafe || {}).length === 0) {
+              document.getElementById('btn-google-auth').classList.remove('hidden');
+            }
           } else {
             document.getElementById('btn-sync-cloud').classList.remove('hidden');
           }
@@ -963,24 +1033,76 @@
       const nameEl = document.getElementById('header-user-name');
       const displayEl = document.getElementById('user-display-name');
 
-      if (currentUser.role === 'admin') {
+      // Normalize user data to support both new DB format and old mock format
+      const uName = currentUser.full_name || currentUser.name || 'Специалист';
+      const uRole = (currentUser.role || 'Specialist').toLowerCase();
+      
+      let org = 'ООО «МедиаАутдор Групп»'; // default
+      if (currentUser.supplier_id && typeof contractorsData !== 'undefined') {
+        const sup = contractorsData.find(c => c.id === currentUser.supplier_id);
+        if (sup) org = sup.name;
+      } else if (currentUser.organization) {
+        org = currentUser.organization;
+      }
+
+      // Hide all tabs initially
+      const navBtnWebbot = document.getElementById('tab-btn-webbot');
+      const navBtnKam = document.getElementById('tab-btn-kam');
+      const navBtnArchive = document.getElementById('tab-btn-archive');
+      const navBtnReports = document.getElementById('tab-btn-reports');
+      const navBtnAdmin = document.getElementById('tab-btn-admin');
+      
+      [navBtnWebbot, navBtnKam, navBtnArchive, navBtnReports, navBtnAdmin].forEach(btn => {
+        if(btn) btn.classList.add('hidden');
+      });
+
+      if (uRole === 'admin') {
         badgeEl.innerText = '🛡️ АДМИН';
         badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30';
         nameEl.innerText = 'Администратор';
-        displayEl.innerText = `Единый профиль: ${currentUser.name} (Центр мониторинга OOH)`;
-      } else if (currentUser.role === 'kam') {
+        displayEl.innerText = `Единый профиль: ${uName} (Центр мониторинга OOH)`;
+        
+        // Show Admin tabs
+        if(navBtnArchive) navBtnArchive.classList.remove('hidden');
+        if(navBtnReports) navBtnReports.classList.remove('hidden');
+        if(navBtnAdmin) navBtnAdmin.classList.remove('hidden');
+        
+        // Ensure switchTab runs (avoids getting stuck on hidden tab)
+        if (activeTab === 'webbot' || activeTab === 'kam') switchTab('reports');
+        
+        document.getElementById('btn-profile-badge').setAttribute('onclick', 'openProfileSwitchModal()');
+        document.getElementById('btn-profile-badge-chevron').classList.remove('hidden');
+      } else if (uRole === 'kam') {
         badgeEl.innerText = '👔 КАМ';
         badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30';
-        nameEl.innerText = currentUser.name.split(' ')[0] || currentUser.name;
-        displayEl.innerText = `КАМ: ${currentUser.organization} (${currentUser.name})`;
-      } else {
+        nameEl.innerText = uName.split(' ')[0];
+        displayEl.innerText = `КАМ: ${org} (${uName})`;
+        
+        // Show KAM tabs
+        if(navBtnKam) navBtnKam.classList.remove('hidden');
+        if(navBtnArchive) navBtnArchive.classList.remove('hidden');
+        if(navBtnReports) navBtnReports.classList.remove('hidden');
+        
+        if (activeTab === 'webbot' || activeTab === 'admin') switchTab('kam');
+        
+        document.getElementById('btn-profile-badge').removeAttribute('onclick');
+        document.getElementById('btn-profile-badge-chevron').classList.add('hidden');
+      } else { // field / specialist
         badgeEl.innerText = '👷 ПОЛЕВОЙ';
         badgeEl.className = 'px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-500/20 text-sky-400 border border-sky-500/30';
-        nameEl.innerText = currentUser.name.split(' ')[0] || currentUser.name;
-        displayEl.innerText = `Полевой специалист: ${currentUser.organization} (${currentUser.name})`;
+        nameEl.innerText = uName.split(' ')[0];
+        displayEl.innerText = `Полевой специалист: ${org} (${uName})`;
+        
+        // Show Field tabs
+        if(navBtnWebbot) navBtnWebbot.classList.remove('hidden');
+        
+        switchTab('webbot');
+        
+        document.getElementById('btn-profile-badge').removeAttribute('onclick');
+        document.getElementById('btn-profile-badge-chevron').classList.add('hidden');
       }
 
-      document.getElementById('webbot-supplier-label').innerText = currentUser.organization || 'ООО «МедиаАутдор Групп»';
+      document.getElementById('webbot-supplier-label').innerText = org;
       populateWebbotConstructions();
       renderKamTab();
     }
