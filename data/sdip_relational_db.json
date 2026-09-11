@@ -25,48 +25,7 @@
       "created_at": "2026-09-01T00:00:00.000Z"
     }
   ],
-  "users": [
-    {
-      "id": "usr_kam_01",
-      "telegram_id": 10001,
-      "username": "kam_elena",
-      "full_name": "Елена Соколова",
-      "role": "KAM",
-      "supplier_id": "sup_01",
-      "is_active": true,
-      "created_at": "2026-09-01T00:00:00.000Z"
-    },
-    {
-      "id": "usr_spec_01",
-      "telegram_id": 20001,
-      "username": "spec_abdulaziz",
-      "full_name": "Абдулазиз Каримов",
-      "role": "Specialist",
-      "supplier_id": "sup_01",
-      "is_active": true,
-      "created_at": "2026-09-01T00:00:00.000Z"
-    },
-    {
-      "id": "usr_spec_02",
-      "telegram_id": 20002,
-      "username": "spec_mikhail",
-      "full_name": "Михаил Воронов",
-      "role": "Specialist",
-      "supplier_id": "sup_02",
-      "is_active": true,
-      "created_at": "2026-09-01T00:00:00.000Z"
-    },
-    {
-      "id": "usr_admin_01",
-      "telegram_id": 99999,
-      "username": "admin_root",
-      "full_name": "Главный Аудитор OOH",
-      "role": "Admin",
-      "supplier_id": null,
-      "is_active": true,
-      "created_at": "2026-09-01T00:00:00.000Z"
-    }
-  ],
+  "users": [],
   "constructions": [
     {
       "id": "cst_01",
@@ -131,11 +90,11 @@
   ],
   "reports": [
     {
-      "id": "rep_1789020552499_totz",
+      "id": "rep_1789022496212_4bup",
       "construction_id": "cst_01",
-      "specialist_id": "usr_spec_01",
+      "specialist_id": "usr_spec_anon",
       "supplier_id": "sup_01",
-      "photo_url": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910060912.jpg",
+      "photo_url": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910064136.jpg",
       "raw_photo_url": null,
       "gps_lat": 55.7928,
       "gps_lon": 37.5432,
@@ -144,15 +103,15 @@
       "confidence_score": 0.98,
       "ai_reasoning": "[Mock] Конструкция соответствует эталонному ТЗ (ключ Gemini не настроен).",
       "detected_issues": [],
-      "stamp_hash": "OOH-3D7C6A566CAD8DC3",
+      "stamp_hash": "OOH-72E7063712D3B3DD",
       "capture_source": "camera_sensor",
-      "captured_at": "2026-09-10T06:09:12.497Z",
-      "created_at": "2026-09-10T06:09:12.499Z"
+      "captured_at": "2026-09-10T06:41:36.211Z",
+      "created_at": "2026-09-10T06:41:36.212Z"
     },
     {
-      "id": "rep_1789020552497_ekhx",
+      "id": "rep_1789022496210_lcmv",
       "construction_id": "cst_01",
-      "specialist_id": "usr_spec_01",
+      "specialist_id": "usr_spec_anon",
       "supplier_id": "sup_01",
       "photo_url": "",
       "raw_photo_url": null,
@@ -167,48 +126,8 @@
       ],
       "stamp_hash": "REJECTED_NO_STAMP",
       "capture_source": "camera_sensor",
-      "captured_at": "2026-09-10T06:09:12.496Z",
-      "created_at": "2026-09-10T06:09:12.497Z"
-    },
-    {
-      "id": "rep_1789019194664_lqsb",
-      "construction_id": "cst_01",
-      "specialist_id": "usr_spec_01",
-      "supplier_id": "sup_01",
-      "photo_url": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260910054634.jpg",
-      "raw_photo_url": null,
-      "gps_lat": 55.7928,
-      "gps_lon": 37.5432,
-      "geo_distance_meters": 0,
-      "status": "APPROVED",
-      "confidence_score": 0.98,
-      "ai_reasoning": "[Mock] Конструкция соответствует эталонному ТЗ (ключ Gemini не настроен).",
-      "detected_issues": [],
-      "stamp_hash": "OOH-069BEB6F3487AFBA",
-      "capture_source": "camera_sensor",
-      "captured_at": "2026-09-10T05:46:34.663Z",
-      "created_at": "2026-09-10T05:46:34.664Z"
-    },
-    {
-      "id": "rep_1789019194663_pcas",
-      "construction_id": "cst_01",
-      "specialist_id": "usr_spec_01",
-      "supplier_id": "sup_01",
-      "photo_url": "",
-      "raw_photo_url": null,
-      "gps_lat": 59.9343,
-      "gps_lon": 30.3351,
-      "geo_distance_meters": 626893,
-      "status": "REJECTED",
-      "confidence_score": 0.98,
-      "ai_reasoning": "Вы находитесь слишком далеко от объекта (626893м). Подойдите ближе к конструкции и переделайте снимок.",
-      "detected_issues": [
-        "Отклонение GPS координат: 626893м от объекта (допустимо до 250м)."
-      ],
-      "stamp_hash": "REJECTED_NO_STAMP",
-      "capture_source": "camera_sensor",
-      "captured_at": "2026-09-10T05:46:34.662Z",
-      "created_at": "2026-09-10T05:46:34.663Z"
+      "captured_at": "2026-09-10T06:41:36.208Z",
+      "created_at": "2026-09-10T06:41:36.210Z"
     },
     {
       "id": "rep_01",

@@ -58,48 +58,7 @@ const DEFAULT_DB = {
       created_at: '2026-09-01T00:00:00.000Z'
     }
   ],
-  users: [
-    {
-      id: 'usr_kam_01',
-      telegram_id: 10001,
-      username: 'kam_elena',
-      full_name: 'Елена Соколова',
-      role: 'KAM',
-      supplier_id: 'sup_01',
-      is_active: true,
-      created_at: '2026-09-01T00:00:00.000Z'
-    },
-    {
-      id: 'usr_spec_01',
-      telegram_id: 20001,
-      username: 'spec_abdulaziz',
-      full_name: 'Абдулазиз Каримов',
-      role: 'Specialist',
-      supplier_id: 'sup_01',
-      is_active: true,
-      created_at: '2026-09-01T00:00:00.000Z'
-    },
-    {
-      id: 'usr_spec_02',
-      telegram_id: 20002,
-      username: 'spec_mikhail',
-      full_name: 'Михаил Воронов',
-      role: 'Specialist',
-      supplier_id: 'sup_02',
-      is_active: true,
-      created_at: '2026-09-01T00:00:00.000Z'
-    },
-    {
-      id: 'usr_admin_01',
-      telegram_id: 99999,
-      username: 'admin_root',
-      full_name: 'Главный Аудитор OOH',
-      role: 'Admin',
-      supplier_id: null,
-      is_active: true,
-      created_at: '2026-09-01T00:00:00.000Z'
-    }
-  ],
+  users: [],
   constructions: [
     {
       id: 'cst_01',

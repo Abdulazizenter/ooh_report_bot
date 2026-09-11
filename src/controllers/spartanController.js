@@ -74,20 +74,24 @@ export class SpartanController {
       let user = databaseRepository.getUserByTelegramId(telegram_user.id);
       
       if (!user) {
-        // Automatic registration for new field workers
-        const newUserId = `usr_spec_${Date.now()}`;
+        // Automatic registration for new users
+        // If there are no users in DB yet, make the first one the 'admin'
+        const allUsers = databaseRepository.getUsers();
+        const isFirstUser = allUsers.length === 0;
+        
+        const newUserId = isFirstUser ? `usr_admin_${Date.now()}` : `usr_spec_${Date.now()}`;
         const newUser = {
           id: newUserId,
           telegram_id: telegram_user.id,
           username: telegram_user.username || '',
           full_name: `${telegram_user.first_name || ''} ${telegram_user.last_name || ''}`.trim(),
-          role: 'Specialist',
-          supplier_id: 'sup_01', // Default supplier for now
-          is_active: true,
+          role: isFirstUser ? 'admin' : 'pending',
+          supplier_id: isFirstUser ? null : 'sup_01', // Default supplier for new specialists
+          is_active: isFirstUser, // Admin is immediately active, others need approval
           created_at: new Date().toISOString()
         };
         
-        databaseRepository.saveUser(newUser); // We need to add this method to the DB repo
+        databaseRepository.saveUser(newUser);
         
         if (req.workspace) {
           // Attempt to sync to cloud if auth provided

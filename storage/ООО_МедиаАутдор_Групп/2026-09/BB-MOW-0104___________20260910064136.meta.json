@@ -1,0 +1,38 @@
+{
+  "stamp": {
+    "stampHash": "OOH-72E7063712D3B3DD",
+    "pillar1_Contractor": {
+      "title": "ПОСТАВЩИК",
+      "organization": "ООО «МедиаАутдор Групп»",
+      "inn": "Не указан",
+      "specialistName": "Полевой специалист"
+    },
+    "pillar2_Location": {
+      "title": "ЛОКАЦИЯ",
+      "city": "Москва",
+      "address": "г. Москва, Ленинградский пр-кт, 37 к2",
+      "gpsCoordinates": "55.792800, 37.543200",
+      "gpsAccuracy": "±4м (GPS/ГЛОНАСС)"
+    },
+    "pillar3_Construction": {
+      "title": "КОНСТРУКЦИЯ",
+      "code": "BB-MOW-0104",
+      "type": "Билборд 3х6 м",
+      "side": "Сторона А",
+      "lighting": "Внешняя"
+    },
+    "pillar4_DateTime": {
+      "title": "ДАТА И ВРЕМЯ",
+      "date": "10.09.2026",
+      "time": "06:41:36",
+      "timeZone": "MSK (UTC+3)",
+      "realtimeVerified": true
+    },
+    "watermarkText": "OOH SDIP REAL-TIME STREAM • ООО «МедиаАутдор Групп» • 10.09.2026 06:41:36 • HASH: 72E7063712D3B3DD"
+  },
+  "constructionId": "cst_01",
+  "specialist": "Полевой специалист",
+  "aiScore": 0.98,
+  "persistedFolder": "ООО_МедиаАутдор_Групп/2026-09",
+  "persistedFileName": "BB-MOW-0104___________20260910064136.jpg"
+}
