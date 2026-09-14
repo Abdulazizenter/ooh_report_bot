@@ -8,6 +8,8 @@ import { FieldReportController } from './src/controllers/fieldReportController.j
 import { ArchiveController } from './src/controllers/archiveController.js';
 import { SpartanController } from './src/controllers/spartanController.js';
 import { WorkspaceAdapter } from './src/repositories/workspaceAdapter.js';
+import { databaseRepository } from './src/repositories/databaseRepository.js';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -117,6 +119,12 @@ app.get('/api/archive/folders', ArchiveController.getFolders);
 app.post('/api/v2/user/auth', SpartanController.authenticateUser);
 app.post('/api/v2/user/claim-admin', SpartanController.claimAdmin);
 app.post('/api/v2/sync', SpartanController.syncWithCloud);
+const excelUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /\.(xlsx|xls|csv)$/i.test(file.originalname)) });
+app.post('/api/v2/admin/database/ensure', SpartanController.ensureDatabase);
+app.post('/api/v2/admin/import/preview', excelUpload.single('file'), SpartanController.previewImport);
+app.post('/api/v2/admin/import/commit', SpartanController.commitImport);
+app.get('/api/v2/admin/import-runs', (req, res) => res.json({ success: true, data: databaseRepository.getImportRuns() }));
+app.get('/api/v2/suppliers/:supplierId/report', SpartanController.getSupplierReport);
 app.post('/api/v2/admin/clear-db', SpartanController.adminClearDatabase);
 app.post('/api/v2/admin/import-constructions', SpartanController.adminImportConstructions);
 app.get('/api/v2/user/:telegramId', SpartanController.getUserProfile);
@@ -147,11 +155,36 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start the server (only if not running in Vercel serverless environment)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, '0.0.0.0', () => {
+// Start the server (only if not running in Vercel serverless environment).
+// Keep a handle so the preview runner can stop this process cleanly before
+// starting a replacement; otherwise the old listener can keep port 3000 busy.
+let httpServer;
+
+if (!process.env.VERCEL) {
+  httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${PORT}`);
   });
+
+  httpServer.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.warn(`Port ${PORT} is already in use; the existing preview server will continue serving the app.`);
+      process.exit(0);
+    }
+    console.error('Server listener error:', error);
+    process.exitCode = 1;
+  });
+
+  const shutdown = (signal) => {
+    if (!httpServer || !httpServer.listening) {
+      process.exit(0);
+    }
+
+    console.log(`Received ${signal}; closing the HTTP server.`);
+    httpServer.close(() => process.exit(0));
+  };
+
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 }
 
 // Export for Vercel serverless

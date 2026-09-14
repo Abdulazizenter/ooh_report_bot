@@ -88,43 +88,35 @@ export class WorkspaceAdapter {
   // --- SHEETS METHODS ---
 
   async findOrCreateDatabaseSpreadsheet() {
+    const configuredId = process.env.GOOGLE_SPREADSHEET_ID;
+    if (configuredId) { await this.ensureDatabaseSpreadsheet(configuredId); return configuredId; }
     const q = `name = 'OOH_PROMO_HUB_DB' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`;
     const res = await this.drive.files.list({ q, fields: 'files(id, name)' });
-    
-    if (res.data.files.length > 0) {
-      return res.data.files[0].id;
-    }
-
-    const createRes = await this.sheets.spreadsheets.create({
-      requestBody: {
-        properties: { title: 'OOH_PROMO_HUB_DB' },
-        sheets: [
-          { properties: { title: 'Users' } },
-          { properties: { title: 'Suppliers' } },
-          { properties: { title: 'Constructions' } },
-          { properties: { title: 'Reports' } }
-        ]
-      },
+    const spreadsheetId = res.data.files[0]?.id || (await this.sheets.spreadsheets.create({
+      requestBody: { properties: { title: 'OOH_PROMO_HUB_DB' }, sheets: ['Metadata','Users','Suppliers','Constructions','Programs','Reports','ImportRuns','AuditLog'].map(title => ({ properties: { title } })) },
       fields: 'spreadsheetId'
-    });
-
-    const spreadsheetId = createRes.data.spreadsheetId;
-    
-    // Initialize headers
-    await this.sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        valueInputOption: 'RAW',
-        data: [
-          { range: 'Users!A1:G1', values: [['id', 'telegram_id', 'role', 'name', 'contractorId', 'organization', 'phone']] },
-          { range: 'Suppliers!A1:D1', values: [['id', 'name', 'contact', 'kamName']] },
-          { range: 'Constructions!A1:H1', values: [['id', 'supplierId', 'code', 'city', 'address_location', 'type', 'side', 'lightingType']] },
-          { range: 'Reports!A1:N1', values: [['id', 'constructionId', 'contractorId', 'telegram_id', 'displayDate', 'displayTime', 'status', 'verificationStatus', 'photo_url', 'stamp_hash', 'ai_criteria', 'issues', 'reasoning', 'raw_photo_url']] }
-        ]
-      }
-    });
-
+    })).data.spreadsheetId;
+    await this.ensureDatabaseSpreadsheet(spreadsheetId);
     return spreadsheetId;
+  }
+
+  async ensureDatabaseSpreadsheet(spreadsheetId) {
+    const schema = {
+      Metadata: ['schema_version','spreadsheet_id','created_at','updated_at','last_sync_at','sync_status'],
+      Users: ['id','telegram_id','role','name','supplier_id','organization','phone'],
+      Suppliers: ['id','name','inn','contact_email','contact_phone','folder_path','created_at'],
+      Constructions: ['id','supplier_id','code','city','address_location','latitude','longitude','type','side','lighting_type','tolerance_meters','ai_criteria','reference_photo_url','month_period','extra_data'],
+      Programs: ['id','supplier_id','name','month_period','criteria','created_at'],
+      Reports: ['id','construction_id','supplier_id','specialist_id','telegram_id','captured_at','status','verification_status','photo_url','stamp_hash','ai_criteria','detected_issues','ai_reasoning','raw_photo_url','gps_lat','gps_lon','geo_distance_meters'],
+      ImportRuns: ['id','supplier_id','month_period','file_name','checksum','status','valid_rows','warning_rows','error_rows','created_at','errors'],
+      AuditLog: ['id','actor_id','action','entity','entity_id','created_at','details']
+    };
+    const meta = await this.sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
+    const existing = new Set((meta.data.sheets || []).map(sheet => sheet.properties.title));
+    const missing = Object.keys(schema).filter(title => !existing.has(title));
+    if (missing.length) await this.sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: missing.map(title => ({ addSheet: { properties: { title } } })) } });
+    await this.sheets.spreadsheets.values.batchUpdate({ spreadsheetId, requestBody: { valueInputOption: 'RAW', data: Object.entries(schema).map(([title, headers]) => ({ range: `${title}!A1`, values: [headers] })) } });
+    return { spreadsheetId, sheets: Object.keys(schema), schemaVersion: '2' };
   }
 
   async readSheet(spreadsheetId, sheetName) {
