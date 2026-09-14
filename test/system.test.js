@@ -243,4 +243,13 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log('✓ Production API authentication and private storage invariants passed');
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (10/10) ---');
+// 11. Postgres repository contract
+{
+  const repositorySource = await import('node:fs/promises').then((fs) => fs.readFile(new URL('../src/repositories/databaseRepository.js', import.meta.url), 'utf8'));
+  assert.match(repositorySource, /new Pool\(/, 'Repository must use the Neon PostgreSQL pool');
+  assert.match(repositorySource, /ON CONFLICT/, 'Seed writes must be idempotent');
+  assert.doesNotMatch(repositorySource, /fs\.writeFileSync\(/, 'Production repository must not persist mutable state to local files');
+  console.log('✓ Postgres repository contract passed');
+}
+
+console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (11/11) ---');
