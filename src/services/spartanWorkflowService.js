@@ -3,7 +3,7 @@ import { MediaAnalysisEngine } from '../engines/mediaAnalysisEngine.js';
 import { ComplianceEngine } from '../engines/complianceEngine.js';
 import { WatermarkStampEngine } from '../engines/watermarkStampEngine.js';
 import { StorageFolderEngine } from '../engines/storageFolderEngine.js';
-import { isValidCoordinate, isAllowedCaptureSource, normalizeCaptureTimestamp } from '../utils/domainValidation.js';
+import { isValidCoordinate, isAllowedCaptureSource, normalizeCaptureTimestamp, decodeMediaDataUri, isValidPeriod } from '../utils/domainValidation.js';
 
 export class SpartanWorkflowService {
   /**
@@ -54,15 +54,22 @@ export class SpartanWorkflowService {
       };
     }
 
-    const supplier = databaseRepository.getSupplierById(construction.supplier_id) || {
-      name: 'ООО «МедиаАутдор Групп»',
-      folder_path: 'ООО_МедиаАутдор_Групп'
-    };
+    const supplier = databaseRepository.getSupplierById(construction.supplier_id);
+    if (!supplier) {
+      return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Поставщик конструкции не найден.'], reasoning: 'Адресная программа содержит некорректную привязку поставщика.' };
+    }
+    if (!isValidPeriod(construction.month_period)) {
+      return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Некорректный период конструкции.'], reasoning: 'Период адресной программы должен иметь формат YYYY-MM.' };
+    }
 
     if (!isValidCoordinate(latitude, -90, 90) || !isValidCoordinate(longitude, -180, 180)) {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Отсутствуют или некорректны GPS-координаты съемки.'], reasoning: 'Для отчета нужны валидные координаты в пределах Земли.' };
     }
     const normalizedTimestamp = normalizeCaptureTimestamp(captureTimestamp);
+    const media = decodeMediaDataUri(mediaBase64);
+    if (!media || media.base64.length < 50 || media.base64.length > 34_000_000) {
+      return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Медиа-файл отсутствует, поврежден или превышает лимит 25 МБ.'], reasoning: 'Передайте корректный JPEG, PNG или WebP из камеры.' };
+    }
     if (!normalizedTimestamp || !isAllowedCaptureSource(captureSource)) {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Невалидное время или источник съемки.'], reasoning: 'Разрешена только съемка через подтвержденную камеру реального времени.' };
     }

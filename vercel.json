@@ -1,7 +1,6 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": ".",
   "functions": {
     "server.js": {
       "runtime": "nodejs22.x"
@@ -13,7 +12,7 @@
       "destination": "/server.js"
     },
     {
-      "source": "/:path*",
+      "source": "/health",
       "destination": "/server.js"
     }
   ]

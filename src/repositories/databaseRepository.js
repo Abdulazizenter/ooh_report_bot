@@ -344,8 +344,8 @@ export class DatabaseRepository {
       supplier_id: reportData.supplier_id,
       photo_url: reportData.photo_url,
       raw_photo_url: reportData.raw_photo_url || null,
-      gps_lat: Number(reportData.gps_lat),
-      gps_lon: Number(reportData.gps_lon),
+      gps_lat: Number.isFinite(Number(reportData.gps_lat)) ? Number(reportData.gps_lat) : null,
+      gps_lon: Number.isFinite(Number(reportData.gps_lon)) ? Number(reportData.gps_lon) : null,
       geo_distance_meters: Number(reportData.geo_distance_meters) || 0,
       status: reportData.status || 'PENDING',
       confidence_score: Number(reportData.confidence_score) || 0,
@@ -395,10 +395,12 @@ export class DatabaseRepository {
       const totalPlanned = supplierConstructions.length;
 
       const constructionIds = new Set(supplierConstructions.map(c => c.id));
-      const submittedReports = reports.filter(r => constructionIds.has(r.construction_id));
+      const submittedReports = reports.filter(r => constructionIds.has(r.construction_id) && (!monthPeriod || String(r.captured_at || '').slice(0, 7) === monthPeriod));
+      const approvedConstructionIds = new Set(submittedReports.filter(r => r.status === 'APPROVED').map(r => r.construction_id));
+      const rejectedConstructionIds = new Set(submittedReports.filter(r => r.status === 'REJECTED').map(r => r.construction_id));
 
-      const approvedCount = submittedReports.filter(r => r.status === 'APPROVED').length;
-      const rejectedCount = submittedReports.filter(r => r.status === 'REJECTED').length;
+      const approvedCount = approvedConstructionIds.size;
+      const rejectedCount = rejectedConstructionIds.size;
       const progressPercent = totalPlanned > 0 ? Math.round((approvedCount / totalPlanned) * 100) : 0;
 
       return {

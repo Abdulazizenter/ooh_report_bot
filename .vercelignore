@@ -2,4 +2,3 @@
 .claude/
 agent/
 skills-lock.json
-bun.lock
