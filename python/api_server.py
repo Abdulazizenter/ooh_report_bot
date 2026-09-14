@@ -18,8 +18,29 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 MAX_BODY = 25 * 1024 * 1024
 SESSION_COOKIE = "ooh_session"
-SESSION_SECRET = os.getenv("BETTER_AUTH_SECRET", "development-only-change-me")
+SESSION_SECRET = os.getenv("BETTER_AUTH_SECRET")
 SESSIONS: dict[str, dict] = {}
+
+if not SESSION_SECRET:
+    raise RuntimeError("BETTER_AUTH_SECRET must be configured before starting the API")
+
+SAFE_USER_FIELDS = {"id", "username", "name", "role", "organization", "contractorId", "active", "avatar", "description"}
+
+
+def public_user(user: dict) -> dict:
+    return {key: value for key, value in user.items() if key in SAFE_USER_FIELDS}
+
+
+def require_user(handler: BaseHTTPRequestHandler) -> dict | None:
+    user = session_user(handler)
+    if not user:
+        return None
+    return user
+
+
+def require_admin(handler: BaseHTTPRequestHandler) -> dict | None:
+    user = require_user(handler)
+    return user if user and user.get("role") == "admin" and user.get("active", True) else None
 
 
 def load_json(name: str, default: list | dict) -> list | dict:
@@ -69,6 +90,15 @@ def sign_session(session_id: str) -> str:
     return f"{session_id}.{digest}"
 
 
+def verify_password(password: str, user: dict) -> bool:
+    password_hash = str(user.get("passwordHash", ""))
+    if not password_hash.startswith("sha256$"):
+        return False
+    _, expected = password_hash.split("$", 1)
+    actual = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(actual, expected)
+
+
 def session_user(handler: BaseHTTPRequestHandler) -> dict | None:
     cookie = SimpleCookie(handler.headers.get("Cookie", ""))
     value = cookie.get(SESSION_COOKIE)
@@ -109,13 +139,19 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True, "service": "ooh-promo-hub-python", "timestamp": now()})
         if path == "/api/session":
             return self._send(200, standard(session_user(self)))
+        if path in {"/api/reports", "/api/users", "/api/contractors", "/api/constructions", "/api/kam/programs", "/api/archive/folders", "/api/stats", "/api/export/csv"} and not require_user(self):
+            return self._send(401, standard(error={"code": "UNAUTHENTICATED", "message": "Требуется вход в систему"}))
         if path == "/api/reports":
-            return self._send(200, standard(REPORTS))
+            user = require_user(self)
+            visible_reports = REPORTS if user.get("role") == "admin" else [report for report in REPORTS if report.get("ownerId") == user.get("id")]
+            return self._send(200, standard(visible_reports))
         if path.startswith("/api/reports/"):
+            if not require_user(self):
+                return self._send(401, standard(error={"code": "UNAUTHENTICATED", "message": "Требуется вход в систему"}))
             report_id = path.rsplit("/", 1)[-1]
             report = next((item for item in REPORTS if str(item.get("id")) == report_id), None)
             return self._send(200 if report else 404, standard(report, None if report else {"code": "NOT_FOUND", "message": "Отчет не найден"}))
-        if path == "/api/users": return self._send(200, standard(USERS))
+        if path == "/api/users": return self._send(200, standard([public_user(user) for user in USERS]))
         if path == "/api/contractors": return self._send(200, standard(CONTRACTORS))
         if path == "/api/constructions": return self._send(200, standard(CONSTRUCTIONS))
         if path == "/api/kam/programs": return self._send(200, standard(PROGRAMS))
@@ -126,8 +162,14 @@ class ApiHandler(BaseHTTPRequestHandler):
             approved = sum(status_of(r) in {"APPROVED", "COMPLIANT"} for r in REPORTS)
             return self._send(200, standard({"totalReports": len(REPORTS), "verifiedReports": approved, "totalContractors": len(CONTRACTORS), "totalConstructions": len(CONSTRUCTIONS)}))
         if path == "/api/export/csv":
-            rows = ["id,status,construction_code,captured_at"] + [f"{r.get('id','')},{status_of(r)},{r.get('constructionCode','')},{r.get('capturedAt','')}" for r in REPORTS]
-            return self._send(200, "\n".join(rows).encode(), "text/csv; charset=utf-8", {"Content-Disposition": "attachment; filename=reports.csv"})
+            user = require_user(self)
+            visible_reports = REPORTS if user.get("role") == "admin" else [report for report in REPORTS if report.get("ownerId") == user.get("id")]
+            output = __import__("io").StringIO()
+            writer = csv.writer(output, lineterminator="\n")
+            writer.writerow(["id", "status", "construction_code", "captured_at"])
+            for report in visible_reports:
+                writer.writerow([report.get("id", ""), status_of(report), report.get("constructionCode", ""), report.get("capturedAt", "")])
+            return self._send(200, output.getvalue().encode(), "text/csv; charset=utf-8", {"Content-Disposition": "attachment; filename=reports.csv"})
         if path == "/api/config": return self._send(200, {"googleClientId": os.getenv("GOOGLE_CLIENT_ID", "")})
         if path == "/" or not path.startswith("/api/"): return self._serve_static(ROOT / path.lstrip("/") if path != "/" else ROOT / "index.html")
         self._send(404, standard(error={"code": "API_ROUTE_NOT_FOUND", "message": "API route not found"}))
@@ -140,31 +182,44 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._send(400, standard(error={"code": "INVALID_REQUEST", "message": "Некорректный запрос"}))
         if path == "/api/auth/login":
             email = str(payload.get("email", "")).strip().lower()
+            password = str(payload.get("password", ""))
+            if len(email) > 254 or len(password) > 1024:
+                return self._send(401, standard(error={"code": "INVALID_CREDENTIALS", "message": "Неверные учетные данные"}))
             user = next((u for u in USERS if str(u.get("email", "")).lower() == email), None)
-            if not user or not hmac.compare_digest(str(payload.get("password", "")), str(user.get("password", ""))):
+            if not user or not verify_password(password, user):
                 return self._send(401, standard(error={"code": "INVALID_CREDENTIALS", "message": "Неверные учетные данные"}))
             session_id = secrets.token_urlsafe(32)
-            safe_user = {key: value for key, value in user.items() if key not in {"password", "passwordHash"}}
+            safe_user = public_user(user)
             SESSIONS[session_id] = safe_user
-            return self._send(200, standard(safe_user), headers={"Set-Cookie": f"{SESSION_COOKIE}={sign_session(session_id)}; HttpOnly; SameSite=Lax; Path=/"})
+            return self._send(200, standard(safe_user), headers={"Set-Cookie": f"{SESSION_COOKIE}={sign_session(session_id)}; HttpOnly; Secure; SameSite=Lax; Path=/"})
         if path == "/api/auth/logout":
             cookie = SimpleCookie(self.headers.get("Cookie", "")); value = cookie.get(SESSION_COOKIE)
             if value: SESSIONS.pop(value.value.rsplit(".", 1)[0], None)
             return self._send(200, standard({"loggedOut": True}), headers={"Set-Cookie": f"{SESSION_COOKIE}=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/"})
+        if path in {"/api/engine/evaluate", "/api/reports", "/api/kam/programs"} and not require_user(self):
+            return self._send(401, standard(error={"code": "UNAUTHENTICATED", "message": "Требуется вход в систему"}))
         if path == "/api/engine/evaluate": return self._send(200, standard(engine_score(payload)))
         if path == "/api/reports":
-            report = {"id": str(uuid.uuid4()), **payload, "status": payload.get("status", "PENDING"), "createdAt": now()}
+            user = require_user(self)
+            report = {"id": str(uuid.uuid4()), "ownerId": user["id"], **payload, "status": payload.get("status", "PENDING"), "createdAt": now()}
             REPORTS.append(report); save_json("reports.json", REPORTS)
             return self._send(201, standard(report))
         if path == "/api/kam/programs":
-            program = {"id": str(uuid.uuid4()), **payload, "createdAt": now()}; PROGRAMS.append(program); save_json("kam_programs.json", PROGRAMS)
+            user = require_user(self)
+            program = {"id": str(uuid.uuid4()), "ownerId": user["id"], **payload, "createdAt": now()}; PROGRAMS.append(program); save_json("kam_programs.json", PROGRAMS)
             return self._send(201, standard(program))
         self._send(404, standard(error={"code": "API_ROUTE_NOT_FOUND", "message": "API route not found"}))
 
     def _serve_static(self, path: Path) -> None:
-        if not path.exists() or not path.is_file(): path = ROOT / "index.html"
-        content_type = "text/html; charset=utf-8" if path.suffix == ".html" else "application/octet-stream"
-        self._send(200, path.read_bytes(), content_type)
+        try:
+            resolved = path.resolve()
+            resolved.relative_to(ROOT.resolve())
+        except (OSError, ValueError):
+            return self._send(404, standard(error={"code": "NOT_FOUND", "message": "Файл не найден"}))
+        if not resolved.exists() or not resolved.is_file():
+            resolved = ROOT / "index.html"
+        content_type = "text/html; charset=utf-8" if resolved.suffix == ".html" else "application/octet-stream"
+        self._send(200, resolved.read_bytes(), content_type)
 
     def log_message(self, fmt: str, *args: object) -> None:
         print(json.dumps({"type": "request", "message": fmt % args}, ensure_ascii=False))
