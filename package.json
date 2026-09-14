@@ -5,9 +5,9 @@
   "packageManager": "npm@10.8.2",
   "type": "module",
   "scripts": {
-    "dev": "node server.js",
-    "build": "node --input-type=module -e \"process.env.VERCEL='1'; await import('./server.js'); console.log('Build complete')\"",
-    "start": "node server.js",
+    "dev": "sh -c 'if [ ! -x cpp/ooh_engine ]; then sh cpp/build.sh; fi; exec python3 python/api_server.py'",
+    "build": "sh cpp/build.sh && python3 -m py_compile python/api_server.py",
+    "start": "sh -c 'if [ ! -x cpp/ooh_engine ]; then sh cpp/build.sh; fi; exec python3 python/api_server.py'",
     "test": "node test/system.test.js",
     "lint": "node -e \"console.log('Lint passed')\""
   },
