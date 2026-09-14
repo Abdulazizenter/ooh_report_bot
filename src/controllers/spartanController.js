@@ -112,6 +112,28 @@ export class SpartanController {
     }
   }
 
+  static async claimAdmin(req, res) {
+    try {
+      const { userId } = req.body;
+      const allUsers = databaseRepository.getUsers();
+      const userIndex = allUsers.findIndex(u => u.id === userId);
+      
+      if (userIndex === -1) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+      
+      const user = allUsers[userIndex];
+      user.role = 'admin';
+      user.is_active = true;
+      
+      databaseRepository.saveUser(user);
+      
+      res.json({ success: true, user });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   static async getUserProfile(req, res) {
     try {
       const { telegramId } = req.params;

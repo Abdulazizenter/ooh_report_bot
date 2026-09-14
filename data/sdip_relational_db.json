@@ -25,7 +25,28 @@
       "created_at": "2026-09-01T00:00:00.000Z"
     }
   ],
-  "users": [],
+  "users": [
+    {
+      "id": "usr_admin_1789358032024",
+      "telegram_id": 12345,
+      "username": "test_user",
+      "full_name": "",
+      "role": "admin",
+      "supplier_id": null,
+      "is_active": true,
+      "created_at": "2026-09-14T03:53:52.024Z"
+    },
+    {
+      "id": "usr_spec_1789358036776",
+      "telegram_id": 67890,
+      "username": "test_user2",
+      "full_name": "",
+      "role": "pending",
+      "supplier_id": "sup_01",
+      "is_active": false,
+      "created_at": "2026-09-14T03:53:56.776Z"
+    }
+  ],
   "constructions": [
     {
       "id": "cst_01",

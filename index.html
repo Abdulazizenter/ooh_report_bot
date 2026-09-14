@@ -52,12 +52,13 @@
   
   <!-- PENDING APPROVAL OVERLAY -->
   <div id="pending-approval-overlay" class="fixed inset-0 z-50 bg-[#0d0e14] hidden flex-col items-center justify-center p-6 text-center">
-    <div class="w-16 h-16 rounded-3xl bg-neutral-800 border border-white/10 flex items-center justify-center text-3xl mb-6 shadow-2xl">
+    <div class="w-16 h-16 rounded-3xl bg-neutral-800 border border-white/10 flex items-center justify-center text-3xl mb-6 shadow-2xl" onclick="promptAdminPin()">
       ⏳
     </div>
     <h2 class="text-xl font-black text-white mb-2">Ожидание активации</h2>
     <p class="text-sm text-neutral-400 max-w-[280px]">Ваш аккаунт зарегистрирован, но еще не одобрен Главным Администратором.</p>
     <p class="text-[11px] text-neutral-500 mt-6 bg-white/5 px-4 py-2 rounded-xl">Пожалуйста, обратитесь к руководителю.</p>
+    <button onclick="promptAdminPin()" class="mt-8 text-[10px] text-neutral-600 underline">Я Главный Администратор</button>
   </div>
 
   <!-- MAIN APP CONTAINER -->
@@ -1046,6 +1047,33 @@
         if (currentUser.role === 'field') switchTab('webbot');
         else if (currentUser.role === 'kam') switchTab('kam');
         else if (currentUser.role === 'admin') switchTab('archive');
+      }
+    }
+
+    async function promptAdminPin() {
+      const pin = prompt("Введите PIN-код для получения прав Главного Администратора:");
+      if (pin === "7777") { // Simple PIN for the user
+        if (!currentUser) return;
+        try {
+          const res = await fetch(`/api/v2/user/claim-admin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert("✅ Вы успешно стали Главным Администратором!");
+            currentUser.role = 'admin';
+            currentUser.is_active = true;
+            initCurrentUser(); // Re-run init to hide pending overlay and show UI
+          } else {
+            alert("❌ Ошибка: " + (data.error || "Неизвестная ошибка"));
+          }
+        } catch(e) {
+          alert("❌ Ошибка соединения");
+        }
+      } else if (pin !== null) {
+        alert("❌ Неверный PIN-код");
       }
     }
 

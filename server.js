@@ -67,6 +67,7 @@ app.get('/api/archive/folders', ArchiveController.getFolders);
 
 // --- SPARTAN RELATIONAL WORKFLOW API (Telegram Web App) ---
 app.post('/api/v2/user/auth', SpartanController.authenticateUser);
+app.post('/api/v2/user/claim-admin', SpartanController.claimAdmin);
 app.post('/api/v2/sync', SpartanController.syncWithCloud);
 app.post('/api/v2/admin/clear-db', SpartanController.adminClearDatabase);
 app.post('/api/v2/admin/import-constructions', SpartanController.adminImportConstructions);
