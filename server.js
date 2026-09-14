@@ -43,6 +43,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true, service: 'ooh-promo-hub', timestamp: new Date().toISOString() });
+});
+
 app.use((req, res, next) => {
   res.standard = (status, data, error = null) => res.status(status).json({ success: !error, data: error ? undefined : data, error: error || undefined, meta: { timestamp: new Date().toISOString() } });
   next();
@@ -107,10 +111,15 @@ app.post('/api/v2/specialist/report', SpartanController.submitSpecialistReport);
 app.get('/api/v2/kam/dashboard', SpartanController.getKamDashboard);
 app.post('/api/v2/kam/upload-tz', SpartanController.uploadKamTz);
 
+// Return a consistent JSON response for unknown API routes instead of serving the SPA shell.
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, error: { code: 'API_ROUTE_NOT_FOUND', message: 'API route not found' } });
+});
+
 // Serve static files from root directory
 app.use(express.static(__dirname));
 
-// Fallback to index.html for all routes
+// Fallback to index.html for all browser routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });

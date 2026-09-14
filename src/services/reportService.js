@@ -350,9 +350,13 @@ class ReportService {
     return {
       totalReports: reports.length,
       uniqueContractors: contractors.size,
+      totalContractors: contractors.size,
       uniqueConstructions: constructions.size,
+      totalConstructions: constructions.size,
       verifiedReports: verified,
-      defectReports: defects
+      approvedReports: verified,
+      defectReports: defects,
+      pendingReports: reports.length - verified - defects
     };
   }
 
