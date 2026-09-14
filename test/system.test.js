@@ -234,4 +234,13 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   }
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (9/9) ---');
+// 10. Production API security invariants
+{
+  const serverSource = await import('node:fs/promises').then((fs) => fs.readFile(new URL('../server.js', import.meta.url), 'utf8'));
+  assert.match(serverSource, /app\.use\('\/api', apiAuth\)/, 'All production API routes must use authentication middleware');
+  assert.match(serverSource, /BETTER_AUTH_SECRET must be configured in production/, 'Production must fail closed without a session secret');
+  assert.doesNotMatch(serverSource, /express\.static\(path\.join\(__dirname, 'storage'\)\)/, 'Storage must not be publicly mounted');
+  console.log('✓ Production API authentication and private storage invariants passed');
+}
+
+console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (10/10) ---');
