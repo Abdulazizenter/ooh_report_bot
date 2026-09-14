@@ -8,6 +8,8 @@ import { FieldReportController } from './src/controllers/fieldReportController.j
 import { ArchiveController } from './src/controllers/archiveController.js';
 import { SpartanController } from './src/controllers/spartanController.js';
 import { WorkspaceAdapter } from './src/repositories/workspaceAdapter.js';
+import { databaseRepository } from './src/repositories/databaseRepository.js';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -117,6 +119,12 @@ app.get('/api/archive/folders', ArchiveController.getFolders);
 app.post('/api/v2/user/auth', SpartanController.authenticateUser);
 app.post('/api/v2/user/claim-admin', SpartanController.claimAdmin);
 app.post('/api/v2/sync', SpartanController.syncWithCloud);
+const excelUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /\.(xlsx|xls|csv)$/i.test(file.originalname)) });
+app.post('/api/v2/admin/database/ensure', SpartanController.ensureDatabase);
+app.post('/api/v2/admin/import/preview', excelUpload.single('file'), SpartanController.previewImport);
+app.post('/api/v2/admin/import/commit', SpartanController.commitImport);
+app.get('/api/v2/admin/import-runs', (req, res) => res.json({ success: true, data: databaseRepository.getImportRuns() }));
+app.get('/api/v2/suppliers/:supplierId/report', SpartanController.getSupplierReport);
 app.post('/api/v2/admin/clear-db', SpartanController.adminClearDatabase);
 app.post('/api/v2/admin/import-constructions', SpartanController.adminImportConstructions);
 app.get('/api/v2/user/:telegramId', SpartanController.getUserProfile);

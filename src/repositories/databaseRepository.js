@@ -359,6 +359,23 @@ export class DatabaseRepository {
     return newReport;
   }
 
+  recordImportRun(run) {
+    const db = this._readDb(); db.import_runs = db.import_runs || [];
+    const record = { id: run.id || `imp_${Date.now()}`, ...run, created_at: run.created_at || new Date().toISOString() };
+    db.import_runs.unshift(record); this._writeDb(db); return record;
+  }
+
+  getImportRuns() { return this._readDb().import_runs || []; }
+
+  getSupplierReport(supplierId, period, status) {
+    const db = this._readDb();
+    const constructions = (db.constructions || []).filter(c => c.supplier_id === supplierId && (!period || c.month_period === period));
+    const ids = new Set(constructions.map(c => c.id));
+    const reports = (db.reports || []).filter(r => ids.has(r.construction_id) && (!status || r.status === status));
+    const approved = reports.filter(r => r.status === 'APPROVED').length;
+    return { supplier_id: supplierId, period: period || null, totals: { constructions: constructions.length, reports: reports.length, approved, rejected: reports.filter(r => r.status === 'REJECTED').length, missing: Math.max(0, constructions.length - new Set(reports.map(r => r.construction_id)).size) }, constructions, reports };
+  }
+
   // --- 5. KAM DASHBOARD AGGREGATES ---
   getKamDashboard(monthPeriod = '2026-09') {
     const db = this._readDb();

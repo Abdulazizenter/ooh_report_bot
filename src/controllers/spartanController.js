@@ -1,5 +1,6 @@
 import { spartanWorkflowService } from '../services/spartanWorkflowService.js';
 import { databaseRepository } from '../repositories/databaseRepository.js';
+import { normalizeWorkbook } from '../services/excelImportService.js';
 
 export class SpartanController {
   static async syncWithCloud(req, res) {
@@ -232,6 +233,20 @@ export class SpartanController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  static async ensureDatabase(req, res) {
+    try { if (!req.workspace) return res.status(503).json({ success: false, error: 'Google Workspace не настроен' }); const result = await req.workspace.findOrCreateDatabaseSpreadsheet(); res.json({ success: true, data: { spreadsheetId: result, schemaVersion: '2' } }); } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  }
+
+  static async previewImport(req, res) {
+    try { if (!req.file) return res.status(400).json({ success: false, error: 'Файл Excel не передан' }); const preview = normalizeWorkbook(req.file.buffer, { supplierId: req.body.supplierId, period: req.body.period }); const token = databaseRepository.recordImportRun({ supplier_id: req.body.supplierId || '', month_period: req.body.period || '', file_name: req.file.originalname, checksum: preview.checksum, status: 'PREVIEW', valid_rows: preview.summary.valid, warning_rows: preview.summary.warnings, error_rows: preview.summary.errors, preview_rows: preview.valid }); res.json({ success: true, data: { ...preview, importRunId: token.id } }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
+  }
+
+  static async commitImport(req, res) {
+    try { const { importRunId, supplierId, monthPeriod, constructions } = req.body; if (!Array.isArray(constructions)) return res.status(400).json({ success: false, error: 'Подтверждение импорта не найдено' }); const result = databaseRepository.saveConstructionsBatch({ supplier_id: supplierId, month_period: monthPeriod, constructions }); databaseRepository.recordImportRun({ id: importRunId, supplier_id: supplierId, month_period: monthPeriod, status: 'COMMITTED', valid_rows: constructions.length, warning_rows: 0, error_rows: 0 }); if (req.workspace) { const ssId = await req.workspace.findOrCreateDatabaseSpreadsheet(); await req.workspace.clearAndWriteSheet(ssId, 'Constructions', databaseRepository.getConstructions()); } res.json({ success: true, data: result }); } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  }
+
+  static async getSupplierReport(req, res) { try { res.json({ success: true, data: databaseRepository.getSupplierReport(req.params.supplierId, req.query.period, req.query.status) }); } catch (err) { res.status(500).json({ success: false, error: err.message }); } }
 
   static async adminClearDatabase(req, res) {
     try {
