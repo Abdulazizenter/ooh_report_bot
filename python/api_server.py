@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import hmac
 import json
 import os
+import secrets
 import subprocess
 import uuid
 from datetime import datetime, timezone
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
+MAX_BODY = 25 * 1024 * 1024
+SESSION_COOKIE = "ooh_session"
+SESSION_SECRET = os.getenv("BETTER_AUTH_SECRET", "development-only-change-me")
+SESSIONS: dict[str, dict] = {}
 
 
 def load_json(name: str, default: list | dict) -> list | dict:
@@ -21,6 +29,11 @@ def load_json(name: str, default: list | dict) -> list | dict:
         return default
 
 
+def save_json(name: str, value: object) -> None:
+    path = DATA / name
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 REPORTS = load_json("reports.json", [])
 USERS = load_json("users.json", [])
 CONTRACTORS = load_json("contractors.json", [])
@@ -28,37 +41,49 @@ CONSTRUCTIONS = load_json("constructions.json", [])
 PROGRAMS = load_json("kam_programs.json", [])
 
 
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def standard(data: object = None, error: dict | None = None) -> dict:
+    return {"success": error is None, "data": None if error else data, "error": error, "meta": {"timestamp": now()}}
+
+
 def status_of(report: dict) -> str:
     return str(report.get("status", "PENDING")).upper()
-
-
-def standard(data: object, error: dict | None = None) -> dict:
-    return {
-        "success": error is None,
-        "data": None if error else data,
-        "error": error,
-        "meta": {"timestamp": datetime.now(timezone.utc).isoformat()},
-    }
 
 
 def engine_score(payload: dict) -> dict:
     binary = ROOT / "cpp" / "ooh_engine"
     if binary.exists():
         try:
-            process = subprocess.run(
-                [str(binary)], input=json.dumps(payload), text=True,
-                capture_output=True, timeout=2, check=True,
-            )
-            return json.loads(process.stdout)
+            result = subprocess.run([str(binary)], input=json.dumps(payload), text=True, capture_output=True, timeout=2, check=True)
+            return json.loads(result.stdout)
         except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
             pass
     return {"engine": "python-fallback", "score": 1.0, "status": "COMPLIANT"}
 
 
-class ApiHandler(BaseHTTPRequestHandler):
-    server_version = "OOH-Python/1.0"
+def sign_session(session_id: str) -> str:
+    digest = hmac.new(SESSION_SECRET.encode(), session_id.encode(), hashlib.sha256).hexdigest()
+    return f"{session_id}.{digest}"
 
-    def _send(self, status: int, body: object, content_type: str = "application/json") -> None:
+
+def session_user(handler: BaseHTTPRequestHandler) -> dict | None:
+    cookie = SimpleCookie(handler.headers.get("Cookie", ""))
+    value = cookie.get(SESSION_COOKIE)
+    if not value or "." not in value.value:
+        return None
+    session_id, signature = value.value.rsplit(".", 1)
+    if not hmac.compare_digest(sign_session(session_id).rsplit(".", 1)[1], signature):
+        return None
+    return SESSIONS.get(session_id)
+
+
+class ApiHandler(BaseHTTPRequestHandler):
+    server_version = "OOH-Python/2.0"
+
+    def _send(self, status: int, body: object, content_type: str = "application/json", headers: dict[str, str] | None = None) -> None:
         raw = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -66,62 +91,78 @@ class ApiHandler(BaseHTTPRequestHandler):
         self.send_header("X-Request-Id", self.headers.get("X-Request-Id", str(uuid.uuid4())))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()")
+        for key, value in (headers or {}).items():
+            self.send_header(key, value)
         self.end_headers()
         self.wfile.write(raw)
+
+    def _payload(self) -> dict:
+        length = int(self.headers.get("Content-Length", "0"))
+        if length > MAX_BODY:
+            raise ValueError("payload too large")
+        return json.loads(self.rfile.read(length) or b"{}") if length else {}
 
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
         if path == "/health":
-            self._send(200, {"ok": True, "service": "ooh-promo-hub-python", "timestamp": datetime.now(timezone.utc).isoformat()})
-        elif path == "/api/reports":
-            self._send(200, standard(REPORTS))
-        elif path.startswith("/api/reports/"):
+            return self._send(200, {"ok": True, "service": "ooh-promo-hub-python", "timestamp": now()})
+        if path == "/api/session":
+            return self._send(200, standard(session_user(self)))
+        if path == "/api/reports":
+            return self._send(200, standard(REPORTS))
+        if path.startswith("/api/reports/"):
             report_id = path.rsplit("/", 1)[-1]
             report = next((item for item in REPORTS if str(item.get("id")) == report_id), None)
-            self._send(200 if report else 404, standard(report, None if report else {"code": "NOT_FOUND", "message": "Отчет не найден"}))
-        elif path == "/api/users":
-            self._send(200, standard(USERS))
-        elif path == "/api/contractors":
-            self._send(200, standard(CONTRACTORS))
-        elif path == "/api/constructions":
-            self._send(200, standard(CONSTRUCTIONS))
-        elif path == "/api/stats":
+            return self._send(200 if report else 404, standard(report, None if report else {"code": "NOT_FOUND", "message": "Отчет не найден"}))
+        if path == "/api/users": return self._send(200, standard(USERS))
+        if path == "/api/contractors": return self._send(200, standard(CONTRACTORS))
+        if path == "/api/constructions": return self._send(200, standard(CONSTRUCTIONS))
+        if path == "/api/kam/programs": return self._send(200, standard(PROGRAMS))
+        if path == "/api/archive/folders":
+            folders = sorted({str(item.get("supplier", {}).get("name", "Без поставщика")) for item in REPORTS})
+            return self._send(200, standard([{"name": folder, "reports": sum(folder == str(r.get("supplier", {}).get("name", "Без поставщика")) for r in REPORTS)} for folder in folders]))
+        if path == "/api/stats":
             approved = sum(status_of(r) in {"APPROVED", "COMPLIANT"} for r in REPORTS)
-            self._send(200, standard({"totalReports": len(REPORTS), "verifiedReports": approved, "totalContractors": len(CONTRACTORS), "totalConstructions": len(CONSTRUCTIONS)}))
-        elif path == "/api/config":
-            self._send(200, {"googleClientId": os.getenv("GOOGLE_CLIENT_ID", "")})
-        elif path == "/api/kam/programs":
-            self._send(200, standard(PROGRAMS))
-        elif path == "/api/export/csv":
-            lines = ["id,status,construction_code,captured_at"]
-            lines.extend(
-                f"{r.get('id','')},{status_of(r)},{r.get('constructionCode','')},{r.get('capturedAt','')}" for r in REPORTS
-            )
-            self._send(200, "\n".join(lines).encode(), "text/csv; charset=utf-8")
-        elif path == "/":
-            self._serve_static(ROOT / "index.html")
-        elif not path.startswith("/api/"):
-            self._serve_static(ROOT / path.lstrip("/"))
-        else:
-            self._send(404, standard(None, {"code": "API_ROUTE_NOT_FOUND", "message": "API route not found"}))
+            return self._send(200, standard({"totalReports": len(REPORTS), "verifiedReports": approved, "totalContractors": len(CONTRACTORS), "totalConstructions": len(CONSTRUCTIONS)}))
+        if path == "/api/export/csv":
+            rows = ["id,status,construction_code,captured_at"] + [f"{r.get('id','')},{status_of(r)},{r.get('constructionCode','')},{r.get('capturedAt','')}" for r in REPORTS]
+            return self._send(200, "\n".join(rows).encode(), "text/csv; charset=utf-8", {"Content-Disposition": "attachment; filename=reports.csv"})
+        if path == "/api/config": return self._send(200, {"googleClientId": os.getenv("GOOGLE_CLIENT_ID", "")})
+        if path == "/" or not path.startswith("/api/"): return self._serve_static(ROOT / path.lstrip("/") if path != "/" else ROOT / "index.html")
+        self._send(404, standard(error={"code": "API_ROUTE_NOT_FOUND", "message": "API route not found"}))
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        length = int(self.headers.get("Content-Length", "0"))
-        payload = json.loads(self.rfile.read(length) or b"{}") if length else {}
-        if path == "/api/engine/evaluate":
-            self._send(200, standard(engine_score(payload)))
-            return
+        try:
+            payload = self._payload()
+        except (ValueError, json.JSONDecodeError):
+            return self._send(400, standard(error={"code": "INVALID_REQUEST", "message": "Некорректный запрос"}))
+        if path == "/api/auth/login":
+            email = str(payload.get("email", "")).strip().lower()
+            user = next((u for u in USERS if str(u.get("email", "")).lower() == email), None)
+            if not user or not hmac.compare_digest(str(payload.get("password", "")), str(user.get("password", ""))):
+                return self._send(401, standard(error={"code": "INVALID_CREDENTIALS", "message": "Неверные учетные данные"}))
+            session_id = secrets.token_urlsafe(32)
+            safe_user = {key: value for key, value in user.items() if key not in {"password", "passwordHash"}}
+            SESSIONS[session_id] = safe_user
+            return self._send(200, standard(safe_user), headers={"Set-Cookie": f"{SESSION_COOKIE}={sign_session(session_id)}; HttpOnly; SameSite=Lax; Path=/"})
+        if path == "/api/auth/logout":
+            cookie = SimpleCookie(self.headers.get("Cookie", "")); value = cookie.get(SESSION_COOKIE)
+            if value: SESSIONS.pop(value.value.rsplit(".", 1)[0], None)
+            return self._send(200, standard({"loggedOut": True}), headers={"Set-Cookie": f"{SESSION_COOKIE}=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/"})
+        if path == "/api/engine/evaluate": return self._send(200, standard(engine_score(payload)))
         if path == "/api/reports":
-            report = {"id": str(uuid.uuid4()), **payload, "status": payload.get("status", "PENDING")}
-            REPORTS.append(report)
-            self._send(201, standard(report))
-            return
-        self._send(404, standard(None, {"code": "API_ROUTE_NOT_FOUND", "message": "API route not found"}))
+            report = {"id": str(uuid.uuid4()), **payload, "status": payload.get("status", "PENDING"), "createdAt": now()}
+            REPORTS.append(report); save_json("reports.json", REPORTS)
+            return self._send(201, standard(report))
+        if path == "/api/kam/programs":
+            program = {"id": str(uuid.uuid4()), **payload, "createdAt": now()}; PROGRAMS.append(program); save_json("kam_programs.json", PROGRAMS)
+            return self._send(201, standard(program))
+        self._send(404, standard(error={"code": "API_ROUTE_NOT_FOUND", "message": "API route not found"}))
 
     def _serve_static(self, path: Path) -> None:
-        if not path.exists() or not path.is_file():
-            path = ROOT / "index.html"
+        if not path.exists() or not path.is_file(): path = ROOT / "index.html"
         content_type = "text/html; charset=utf-8" if path.suffix == ".html" else "application/octet-stream"
         self._send(200, path.read_bytes(), content_type)
 
@@ -130,5 +171,4 @@ class ApiHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "3000"))
-    ThreadingHTTPServer(("0.0.0.0", port), ApiHandler).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", int(os.getenv("PORT", "3000"))), ApiHandler).serve_forever()
