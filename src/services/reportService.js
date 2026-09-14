@@ -72,7 +72,10 @@ class ReportService {
   }
 
   createReport(data) {
-    if (!data.contractor || !data.contractor.name) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Тело запроса должно быть JSON-объектом');
+    }
+    if (!data.contractor || typeof data.contractor !== 'object' || !data.contractor.name?.trim()) {
       throw new Error('Поле "Поставщик" (Подрядчик) обязательно для заполнения');
     }
     if (!data.location || !data.location.address) {
