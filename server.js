@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ReportController } from './src/controllers/reportController.js';
@@ -17,10 +18,23 @@ const PORT = Number(process.env.PORT || 3000);
 const requestWindow = new Map();
 const RATE_LIMIT = 120;
 const RATE_WINDOW_MS = 60_000;
+const REQUEST_BODY_LIMIT = '25mb';
+
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  for (const [key, entry] of requestWindow) {
+    if (entry.startedAt < cutoff) requestWindow.delete(key);
+  }
+}, RATE_WINDOW_MS).unref();
+
+const createRequestId = () => crypto.randomUUID();
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   const startedAt = Date.now();
+  const requestId = req.get('x-request-id') || createRequestId();
+  req.requestId = requestId;
+  res.setHeader('X-Request-Id', requestId);
   const key = req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
   const entry = requestWindow.get(key);
@@ -40,8 +54,8 @@ app.use((req, res, next) => {
 });
 
 // Body parser with 25MB limit for photo/video/zip analysis
-app.use(express.json({ limit: '25mb' }));
-app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+app.use(express.json({ limit: REQUEST_BODY_LIMIT, strict: true }));
+app.use(express.urlencoded({ extended: false, limit: REQUEST_BODY_LIMIT }));
 
 app.get('/health', (req, res) => {
   res.status(200).json({ ok: true, service: 'ooh-promo-hub', timestamp: new Date().toISOString() });
@@ -111,9 +125,18 @@ app.post('/api/v2/specialist/report', SpartanController.submitSpecialistReport);
 app.get('/api/v2/kam/dashboard', SpartanController.getKamDashboard);
 app.post('/api/v2/kam/upload-tz', SpartanController.uploadKamTz);
 
+// Keep API failures machine-readable and prevent internal details leaking to clients.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.type === 'entity.too.large' ? 413 : 400;
+  const code = status === 413 ? 'PAYLOAD_TOO_LARGE' : 'INVALID_REQUEST';
+  console.error(JSON.stringify({ type: 'request_error', requestId: req.requestId, code, message: err.message }));
+  res.status(status).json({ success: false, error: { code, message: status === 413 ? 'Размер запроса превышает допустимый лимит.' : 'Некорректный формат запроса.' }, meta: { requestId: req.requestId, timestamp: new Date().toISOString() } });
+});
+
 // Return a consistent JSON response for unknown API routes instead of serving the SPA shell.
 app.use('/api', (req, res) => {
-  res.status(404).json({ success: false, error: { code: 'API_ROUTE_NOT_FOUND', message: 'API route not found' } });
+  res.status(404).json({ success: false, error: { code: 'API_ROUTE_NOT_FOUND', message: 'API route not found' }, meta: { requestId: req.requestId } });
 });
 
 // Serve static files from root directory
