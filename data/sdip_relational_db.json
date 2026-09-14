@@ -119,6 +119,25 @@
   ],
   "reports": [
     {
+      "id": "rep_1789369592289_byyn",
+      "construction_id": "cst_01",
+      "specialist_id": "usr_spec_01",
+      "supplier_id": "sup_01",
+      "photo_url": "/storage/ООО_МедиаАутдор_Групп/2026-09/BB-MOW-0104___________20260914070632.jpg",
+      "raw_photo_url": null,
+      "gps_lat": 55.7928,
+      "gps_lon": 37.5432,
+      "geo_distance_meters": 0,
+      "status": "APPROVED",
+      "confidence_score": 0.98,
+      "ai_reasoning": "[Mock] Конструкция соответствует эталонному ТЗ (ключ Gemini не настроен).",
+      "detected_issues": [],
+      "stamp_hash": "OOH-6EC46F6491509237",
+      "capture_source": "camera_sensor",
+      "captured_at": "2026-09-14T07:06:32.287Z",
+      "created_at": "2026-09-14T07:06:32.289Z"
+    },
+    {
       "id": "rep_1789368560063_3y5a",
       "construction_id": "cst_01",
       "specialist_id": "usr_spec_01",
