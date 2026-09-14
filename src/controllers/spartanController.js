@@ -113,6 +113,9 @@ export class SpartanController {
   static async claimAdmin(req, res) {
     try {
       const { userId, actorUserId } = req.body;
+      if (!req.auth?.userId || req.auth.userId !== actorUserId) {
+        return res.status(403).json({ success: false, error: 'Недействительная сессия администратора' });
+      }
       const actor = databaseRepository.getUserById(actorUserId);
       if (!actor || actor.role !== 'admin' || actor.is_active === false) return res.status(403).json({ success: false, error: 'Только активный администратор может назначать роль' });
       const allUsers = databaseRepository.getUsers();

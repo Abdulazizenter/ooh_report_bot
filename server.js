@@ -30,6 +30,40 @@ setInterval(() => {
 }, RATE_WINDOW_MS).unref();
 
 const createRequestId = () => crypto.randomUUID();
+const SESSION_SECRET = process.env.BETTER_AUTH_SECRET;
+const SESSION_COOKIE = 'ooh_session';
+
+if (process.env.NODE_ENV === 'production' && !SESSION_SECRET) {
+  throw new Error('BETTER_AUTH_SECRET must be configured in production');
+}
+
+const signSession = (userId) => {
+  const payload = Buffer.from(JSON.stringify({ userId, exp: Date.now() + 8 * 60 * 60 * 1000 })).toString('base64url');
+  const signature = crypto.createHmac('sha256', SESSION_SECRET || 'local-development-secret').update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+};
+
+const readSession = (req) => {
+  const token = req.headers.cookie?.split(';').map((value) => value.trim()).find((value) => value.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
+  if (!token || !SESSION_SECRET) return null;
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) return null;
+  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+  try {
+    const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return session.exp > Date.now() ? session : null;
+  } catch {
+    return null;
+  }
+};
+
+const apiAuth = (req, res, next) => {
+  if (req.path === '/v2/user/auth' || req.path === '/health') return next();
+  req.auth = readSession(req);
+  if (!req.auth) return res.status(401).json({ success: false, error: { code: 'UNAUTHENTICATED', message: 'Требуется вход в систему' } });
+  next();
+};
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
@@ -68,6 +102,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api', apiAuth);
+
 // Workspace Adapter Middleware
 app.use((req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -81,8 +117,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static storage folder for structured supplier archives (/{Supplier}/{YYYY-MM}/)
-app.use('/storage', express.static(path.join(__dirname, 'storage')));
+// Stored media is private; access must go through an authenticated controller.
+app.use('/storage', apiAuth, (req, res) => {
+  res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Файл не найден' } });
+});
 
 // REST API Endpoints for OOH Reports and Users
 app.get('/api/reports', ReportController.getReports);
@@ -116,7 +154,20 @@ app.get('/api/config', (req, res) => {
 app.get('/api/archive/folders', ArchiveController.getFolders);
 
 // --- SPARTAN RELATIONAL WORKFLOW API (Telegram Web App) ---
-app.post('/api/v2/user/auth', SpartanController.authenticateUser);
+app.post('/api/v2/user/auth', async (req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (body?.success && body.user?.is_active !== false && body.user?.id) {
+      res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${signSession(body.user.id)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=28800`);
+    }
+    return originalJson(body);
+  };
+  try {
+    await SpartanController.authenticateUser(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
 app.post('/api/v2/user/claim-admin', SpartanController.claimAdmin);
 app.post('/api/v2/sync', SpartanController.syncWithCloud);
 const excelUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /\.(xlsx|xls|csv)$/i.test(file.originalname)) });
