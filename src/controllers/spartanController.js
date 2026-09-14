@@ -72,6 +72,7 @@ export class SpartanController {
   static async authenticateUser(req, res) {
     try {
       const { telegram_user } = req.body;
+      if (!telegram_user || !Number.isSafeInteger(Number(telegram_user.id))) return res.status(400).json({ success: false, error: 'Некорректный Telegram user' });
       let user = databaseRepository.getUserByTelegramId(telegram_user.id);
       
       if (!user) {
@@ -190,8 +191,8 @@ export class SpartanController {
         mediaType,
         latitude,
         longitude,
-        captureTimestamp: captureTimestamp || new Date().toISOString(),
-        captureSource: captureSource || 'camera_sensor',
+        captureTimestamp,
+        captureSource,
         workspace: req.workspace
       });
 
@@ -241,7 +242,16 @@ export class SpartanController {
   }
 
   static async commitImport(req, res) {
-    try { const { importRunId, supplierId, monthPeriod, constructions } = req.body; if (!Array.isArray(constructions)) return res.status(400).json({ success: false, error: 'Подтверждение импорта не найдено' }); const result = databaseRepository.saveConstructionsBatch({ supplier_id: supplierId, month_period: monthPeriod, constructions }); databaseRepository.recordImportRun({ id: importRunId, supplier_id: supplierId, month_period: monthPeriod, status: 'COMMITTED', valid_rows: constructions.length, warning_rows: 0, error_rows: 0 }); if (req.workspace) { const ssId = await req.workspace.findOrCreateDatabaseSpreadsheet(); await req.workspace.clearAndWriteSheet(ssId, 'Constructions', databaseRepository.getConstructions()); } res.json({ success: true, data: result }); } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+    try {
+      const { importRunId, supplierId, monthPeriod } = req.body;
+      const run = databaseRepository.getImportRuns().find(item => item.id === importRunId);
+      if (!run || run.status !== 'PREVIEW' || run.supplier_id !== supplierId || run.month_period !== monthPeriod) return res.status(409).json({ success: false, error: 'Предпросмотр импорта устарел или не совпадает с параметрами.' });
+      const constructions = Array.isArray(run.preview_rows) ? run.preview_rows : [];
+      const result = databaseRepository.saveConstructionsBatch({ supplier_id: supplierId, month_period: monthPeriod, constructions });
+      databaseRepository.recordImportRun({ ...run, id: importRunId, status: 'COMMITTED', committed_at: new Date().toISOString() });
+      if (req.workspace) { const ssId = await req.workspace.findOrCreateDatabaseSpreadsheet(); await req.workspace.clearAndWriteSheet(ssId, 'Constructions', databaseRepository.getConstructions()); }
+      res.json({ success: true, data: result });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
   }
 
   static async getSupplierReport(req, res) { try { const data = databaseRepository.getSupplierReport(req.params.supplierId, req.query.period, req.query.status); if (!data) return res.status(404).json({ success: false, error: 'Поставщик не найден' }); res.json({ success: true, data }); } catch (err) { res.status(500).json({ success: false, error: err.message }); } }
