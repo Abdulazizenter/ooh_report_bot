@@ -41,6 +41,15 @@ export class MediaAnalysisEngine {
     const allowedSources = ['live_camera_stream', 'camera_sensor', 'realtime_sensor'];
     const validSource = allowedSources.includes(captureSource);
 
+    if (!validSource) {
+      return {
+        isRealTime: false,
+        ageSeconds,
+        validSource: false,
+        error: 'Источник съемки не подтвержден как камера реального времени.'
+      };
+    }
+
     return {
       isRealTime: true,
       ageSeconds,
@@ -120,7 +129,8 @@ export class MediaAnalysisEngine {
    * Evaluates field submission photo/video against KAM reference criteria and specifications.
    */
   static async inspectFieldReport({ mediaBase64, kamCriteria = '', constructionCode = '' }) {
-    if (!mediaBase64 || typeof mediaBase64 !== 'string' || mediaBase64.length < 50) {
+    const mediaMatch = typeof mediaBase64 === 'string' && mediaBase64.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=\s]+)$/i);
+    if (!mediaMatch || mediaMatch[2].replace(/\s/g, '').length < 50) {
       return {
         status: 'REJECTED',
         confidence_score: 1.0,
@@ -132,7 +142,8 @@ export class MediaAnalysisEngine {
     }
 
     // Get the base64 string without the data URI prefix
-    const base64Data = mediaBase64.replace(/^data:image\/\w+;base64,/, '');
+    const base64Data = mediaMatch[2].replace(/\s/g, '');
+    const detectedMimeType = mediaMatch[1].toLowerCase().replace('jpg', 'jpeg');
 
     if (!process.env.GEMINI_API_KEY) {
       // Fallback deterministic logic if API key is not configured
@@ -169,7 +180,7 @@ export class MediaAnalysisEngine {
         model: 'gemini-3.6-flash',
         contents: [
           { text: prompt },
-          { inlineData: { data: base64Data, mimeType: 'image/jpeg' } }
+          { inlineData: { data: base64Data, mimeType: detectedMimeType } }
         ],
         config: {
           responseMimeType: 'application/json'

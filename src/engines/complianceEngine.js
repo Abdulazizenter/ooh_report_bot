@@ -1,10 +1,12 @@
+import { normalizeCoordinates } from '../utils/domainValidation.js';
+
 // ComplianceEngine: compares field submission against KAM registered construction & criteria
 export class ComplianceEngine {
   /**
    * Calculates distance in meters between two GPS coordinates using the Haversine formula
    */
   static calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    if (!normalizeCoordinates(lat1, lon1) || !normalizeCoordinates(lat2, lon2)) return null;
     const R = 6371e3; // Earth radius in meters
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
@@ -69,7 +71,9 @@ export class ComplianceEngine {
       }
 
       // 3. Geolocation proximity verification
-      if (fieldReport.gps?.latitude && fieldReport.gps?.longitude && registeredConst.latitude && registeredConst.longitude) {
+      const fieldCoordinates = normalizeCoordinates(fieldReport.gps?.latitude, fieldReport.gps?.longitude);
+      const registeredCoordinates = normalizeCoordinates(registeredConst.latitude, registeredConst.longitude);
+      if (fieldCoordinates && registeredCoordinates) {
         const distMeters = this.calculateDistanceMeters(
           fieldReport.gps.latitude,
           fieldReport.gps.longitude,
@@ -96,10 +100,11 @@ export class ComplianceEngine {
         checks.push({
           id: 'GEO_PROXIMITY',
           label: 'GPS-привязка к координатам объекта',
-          passed: true,
-          severity: 'INFO',
-          message: 'GPS зафиксирован в онлайн-режиме.'
+          passed: false,
+          severity: 'CRITICAL',
+          message: 'Невозможно подтвердить GPS: нужны валидные координаты объекта и съемки.'
         });
+        isFullyCompliant = false;
       }
     }
 

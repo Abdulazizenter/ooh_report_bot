@@ -3,6 +3,7 @@ import { MediaAnalysisEngine } from '../engines/mediaAnalysisEngine.js';
 import { ComplianceEngine } from '../engines/complianceEngine.js';
 import { WatermarkStampEngine } from '../engines/watermarkStampEngine.js';
 import { StorageFolderEngine } from '../engines/storageFolderEngine.js';
+import { isValidCoordinate, isAllowedCaptureSource, normalizeCaptureTimestamp } from '../utils/domainValidation.js';
 
 export class SpartanWorkflowService {
   /**
@@ -13,12 +14,13 @@ export class SpartanWorkflowService {
       ? databaseRepository.getUserByTelegramId(specialistTelegramId)
       : null;
 
-    const supplierId = user?.role === 'Specialist' ? user.supplier_id : null;
+    if (user?.role !== 'Specialist' || user.is_active === false || !user.supplier_id) return [];
+    if (!isValidCoordinate(latitude, -90, 90) || !isValidCoordinate(longitude, -180, 180)) return [];
 
     return databaseRepository.getNearbyConstructions({
-      latitude: Number(latitude) || 55.751244,
-      longitude: Number(longitude) || 37.618423,
-      supplier_id: supplierId
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      supplier_id: user.supplier_id
     });
   }
 
@@ -36,16 +38,14 @@ export class SpartanWorkflowService {
     captureSource = 'camera_sensor'
   }) {
     // 1. Verify User
-    const user = databaseRepository.getUserByTelegramId(telegramId) || {
-      id: 'usr_spec_anon',
-      full_name: 'Полевой специалист',
-      role: 'Specialist',
-      supplier_id: 'sup_01'
-    };
+    const user = databaseRepository.getUserByTelegramId(telegramId);
+    if (!user || user.role !== 'Specialist' || user.is_active === false || !user.supplier_id) {
+      return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Пользователь не авторизован как активный специалист с назначенным поставщиком.'], reasoning: 'Сначала завершите регистрацию и дождитесь назначения поставщика.' };
+    }
 
     // 2. Fetch Construction
     const construction = databaseRepository.getConstructionById(constructionId);
-    if (!construction) {
+    if (!construction || construction.supplier_id !== user.supplier_id) {
       return {
         status: 'REJECTED',
         confidence_score: 1.0,
@@ -59,9 +59,17 @@ export class SpartanWorkflowService {
       folder_path: 'ООО_МедиаАутдор_Групп'
     };
 
+    if (!isValidCoordinate(latitude, -90, 90) || !isValidCoordinate(longitude, -180, 180)) {
+      return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Отсутствуют или некорректны GPS-координаты съемки.'], reasoning: 'Для отчета нужны валидные координаты в пределах Земли.' };
+    }
+    const normalizedTimestamp = normalizeCaptureTimestamp(captureTimestamp);
+    if (!normalizedTimestamp || !isAllowedCaptureSource(captureSource)) {
+      return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Невалидное время или источник съемки.'], reasoning: 'Разрешена только съемка через подтвержденную камеру реального времени.' };
+    }
+
     // 3. Real-Time Check: Stale gallery uploads rejected (<180s requirement)
     const realTimeCheck = MediaAnalysisEngine.verifyRealTimeIntegrity({
-      captureTimestamp: captureTimestamp || new Date().toISOString(),
+      captureTimestamp: normalizedTimestamp,
       captureSource: captureSource || 'camera_sensor'
     });
 
@@ -168,7 +176,7 @@ export class SpartanWorkflowService {
         const rootFolderId = await workspace.findOrCreateFolder('OOH_PROMO_HUB_STORAGE');
         const supplierFolderId = await workspace.findOrCreateFolder(supplier.name, rootFolderId);
         
-        const dateStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+        const dateStr = normalizedTimestamp.slice(0, 7); // YYYY-MM of capture, not upload
         const monthFolderId = await workspace.findOrCreateFolder(dateStr, supplierFolderId);
         
         const fileName = `${construction.code}_${construction.side}_${Date.now()}.jpg`;

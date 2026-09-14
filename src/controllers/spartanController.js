@@ -76,19 +76,15 @@ export class SpartanController {
       
       if (!user) {
         // Automatic registration for new users
-        // If there are no users in DB yet, make the first one the 'admin'
-        const allUsers = databaseRepository.getUsers();
-        const isFirstUser = allUsers.length === 0;
-        
-        const newUserId = isFirstUser ? `usr_admin_${Date.now()}` : `usr_spec_${Date.now()}`;
+        const newUserId = `usr_pending_${Date.now()}`;
         const newUser = {
           id: newUserId,
           telegram_id: telegram_user.id,
           username: telegram_user.username || '',
           full_name: `${telegram_user.first_name || ''} ${telegram_user.last_name || ''}`.trim(),
-          role: isFirstUser ? 'admin' : 'pending',
-          supplier_id: isFirstUser ? null : 'sup_01', // Default supplier for new specialists
-          is_active: isFirstUser, // Admin is immediately active, others need approval
+          role: 'pending',
+          supplier_id: null,
+          is_active: false,
           created_at: new Date().toISOString()
         };
         
@@ -115,7 +111,9 @@ export class SpartanController {
 
   static async claimAdmin(req, res) {
     try {
-      const { userId } = req.body;
+      const { userId, actorUserId } = req.body;
+      const actor = databaseRepository.getUserById(actorUserId);
+      if (!actor || actor.role !== 'admin' || actor.is_active === false) return res.status(403).json({ success: false, error: 'Только активный администратор может назначать роль' });
       const allUsers = databaseRepository.getUsers();
       const userIndex = allUsers.findIndex(u => u.id === userId);
       
@@ -246,7 +244,7 @@ export class SpartanController {
     try { const { importRunId, supplierId, monthPeriod, constructions } = req.body; if (!Array.isArray(constructions)) return res.status(400).json({ success: false, error: 'Подтверждение импорта не найдено' }); const result = databaseRepository.saveConstructionsBatch({ supplier_id: supplierId, month_period: monthPeriod, constructions }); databaseRepository.recordImportRun({ id: importRunId, supplier_id: supplierId, month_period: monthPeriod, status: 'COMMITTED', valid_rows: constructions.length, warning_rows: 0, error_rows: 0 }); if (req.workspace) { const ssId = await req.workspace.findOrCreateDatabaseSpreadsheet(); await req.workspace.clearAndWriteSheet(ssId, 'Constructions', databaseRepository.getConstructions()); } res.json({ success: true, data: result }); } catch (err) { res.status(500).json({ success: false, error: err.message }); }
   }
 
-  static async getSupplierReport(req, res) { try { res.json({ success: true, data: databaseRepository.getSupplierReport(req.params.supplierId, req.query.period, req.query.status) }); } catch (err) { res.status(500).json({ success: false, error: err.message }); } }
+  static async getSupplierReport(req, res) { try { const data = databaseRepository.getSupplierReport(req.params.supplierId, req.query.period, req.query.status); if (!data) return res.status(404).json({ success: false, error: 'Поставщик не найден' }); res.json({ success: true, data }); } catch (err) { res.status(500).json({ success: false, error: err.message }); } }
 
   static async adminClearDatabase(req, res) {
     try {
