@@ -1,5 +1,6 @@
 -- ====================================================================
 -- SDIP OOH PROMO HUB — PRODUCTION RELATIONAL DATABASE SCHEMA (PostgreSQL)
+-- Runtime-compatible Neon schema includes legacy Telegram fields and JSON payload compatibility.
 -- LAYER: Database (DDL Specifications & Schema Definition)
 -- COMPLIANCE: Spatial Decision Intelligence Platform Standard
 -- ====================================================================

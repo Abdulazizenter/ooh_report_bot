@@ -37,6 +37,7 @@ export class SpartanWorkflowService {
     captureTimestamp,
     captureSource = 'camera_sensor'
   }) {
+    await databaseRepository.waitUntilReady();
     // 1. Verify User
     const user = databaseRepository.getUserByTelegramId(telegramId);
     if (!user || user.role !== 'Specialist' || user.is_active === false || !user.supplier_id) {

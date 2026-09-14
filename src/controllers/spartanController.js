@@ -71,6 +71,7 @@ export class SpartanController {
 
   static async authenticateUser(req, res) {
     try {
+      await databaseRepository.waitUntilReady();
       const { telegram_user } = req.body;
       if (!telegram_user || !Number.isSafeInteger(Number(telegram_user.id))) return res.status(400).json({ success: false, error: 'Некорректный Telegram user' });
       let user = databaseRepository.getUserByTelegramId(telegram_user.id);
