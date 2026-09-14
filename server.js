@@ -49,7 +49,9 @@ const readSession = (req) => {
   const [payload, signature] = token.split('.');
   if (!payload || !signature) return null;
   const expected = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+  const actualBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expected);
+  if (actualBytes.length !== expectedBytes.length || !crypto.timingSafeEqual(actualBytes, expectedBytes)) return null;
   try {
     const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     return session.exp > Date.now() ? session : null;
