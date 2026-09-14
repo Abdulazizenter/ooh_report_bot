@@ -12,11 +12,41 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
+
+const requestWindow = new Map();
+const RATE_LIMIT = 120;
+const RATE_WINDOW_MS = 60_000;
+
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  const key = req.ip || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = requestWindow.get(key);
+  if (!entry || now - entry.startedAt > RATE_WINDOW_MS) {
+    requestWindow.set(key, { startedAt: now, count: 1 });
+  } else {
+    entry.count += 1;
+    if (entry.count > RATE_LIMIT) {
+      return res.status(429).json({ success: false, error: { code: 'RATE_LIMITED', message: 'Слишком много запросов. Повторите позже.' } });
+    }
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), geolocation=(self), microphone=()');
+  res.on('finish', () => console.log(JSON.stringify({ type: 'request', method: req.method, path: req.path, status: res.statusCode, durationMs: Date.now() - startedAt })));
+  next();
+});
 
 // Body parser with 25MB limit for photo/video/zip analysis
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+app.use((req, res, next) => {
+  res.standard = (status, data, error = null) => res.status(status).json({ success: !error, data: error ? undefined : data, error: error || undefined, meta: { timestamp: new Date().toISOString() } });
+  next();
+});
 
 // Workspace Adapter Middleware
 app.use((req, res, next) => {

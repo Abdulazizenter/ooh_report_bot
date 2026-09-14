@@ -92,6 +92,10 @@ CREATE TABLE IF NOT EXISTS reports (
     stamp_hash VARCHAR(128) NOT NULL, -- Криптографический хэш штампа водяных знаков
     capture_source VARCHAR(64) DEFAULT 'live_camera_stream' NOT NULL,
     captured_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    idempotency_key VARCHAR(128) UNIQUE,
+    signature_hash VARCHAR(256),
+    audit_trail JSONB DEFAULT '[]'::jsonb NOT NULL,
+    api_call_log JSONB DEFAULT '[]'::jsonb NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -103,3 +107,23 @@ CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_captured_at ON reports(captured_at);
 
 COMMENT ON TABLE reports IS 'Фактические полевые отчеты с метаданными ИИ-проверки и геолокации';
+
+-- --------------------------------------------------------------------
+-- 5. TABLE: audit_log (Неизменяемый журнал действий)
+-- --------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS audit_log (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    actor_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(32) NOT NULL CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'REJECT')),
+    resource_type VARCHAR(64) NOT NULL,
+    resource_id VARCHAR(64) NOT NULL,
+    before_state JSONB,
+    after_state JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_resource ON audit_log(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC);
