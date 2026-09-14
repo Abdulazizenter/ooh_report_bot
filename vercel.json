@@ -3,7 +3,6 @@
   "buildCommand": "npm run build",
   "functions": {
     "server.js": {
-      "runtime": "nodejs20.x",
       "maxDuration": 60
     }
   },
