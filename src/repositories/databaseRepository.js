@@ -16,7 +16,9 @@ if (!fs.existsSync(DATA_DIR)) {
 
 // Haversine distance calculator in meters
 function haversineMeters(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return 9999999;
+  const values = [lat1, lon1, lat2, lon2].map(Number);
+  if (!values.every(Number.isFinite) || values[0] < -90 || values[0] > 90 || values[2] < -90 || values[2] > 90 || values[1] < -180 || values[1] > 180 || values[3] < -180 || values[3] > 180) return null;
+  [lat1, lon1, lat2, lon2] = values;
   const R = 6371e3;
   const p1 = (lat1 * Math.PI) / 180;
   const p2 = (lat2 * Math.PI) / 180;
@@ -231,13 +233,12 @@ export class DatabaseRepository {
     return (this._readDb().constructions || []).find(c => c.id === id) || null;
   }
 
-  getNearbyConstructions({ latitude, longitude, supplier_id = null, maxDistanceMeters = 50000 }) {
+  getNearbyConstructions({ latitude, longitude, supplier_id = null, month_period = null, maxDistanceMeters = 50000 }) {
     const db = this._readDb();
     let constructions = db.constructions || [];
 
-    if (supplier_id) {
-      constructions = constructions.filter(c => c.supplier_id === supplier_id);
-    }
+    if (supplier_id) constructions = constructions.filter(c => c.supplier_id === supplier_id);
+    if (month_period) constructions = constructions.filter(c => c.month_period === month_period);
 
     const suppliersMap = new Map((db.suppliers || []).map(s => [s.id, s]));
     const reports = db.reports || [];
@@ -248,7 +249,7 @@ export class DatabaseRepository {
 
       // Check if already reported this month
       const existingReport = reports.find(
-        r => r.construction_id === c.id && r.status === 'APPROVED'
+        r => r.construction_id === c.id && r.status === 'APPROVED' && (!month_period || String(r.captured_at || '').slice(0, 7) === month_period)
       );
 
       return {
@@ -256,7 +257,7 @@ export class DatabaseRepository {
         supplier_name: supplier ? supplier.name : 'Поставщик',
         supplier_folder: supplier ? supplier.folder_path : 'archive',
         distance_meters: dist,
-        distance_formatted: dist >= 1000 ? `${(dist / 1000).toFixed(1)} км` : `${dist} м`,
+        distance_formatted: dist == null ? 'GPS недоступен' : dist >= 1000 ? `${(dist / 1000).toFixed(1)} км` : `${dist} м`,
         is_completed: Boolean(existingReport),
         last_report_id: existingReport ? existingReport.id : null
       };
@@ -287,8 +288,8 @@ export class DatabaseRepository {
         type: item.type || 'Билборд 3х6 м',
         side: item.side || 'Сторона А',
         address_location: item.address || item.address_location || 'г. Москва',
-        latitude: Number(item.latitude) || 55.751244,
-        longitude: Number(item.longitude) || 37.618423,
+        latitude: Number.isFinite(Number(item.latitude)) ? Number(item.latitude) : null,
+        longitude: Number.isFinite(Number(item.longitude)) ? Number(item.longitude) : null,
         tolerance_meters: Number(item.tolerance_meters) || 300,
         ai_criteria: item.ai_criteria || defaultCriteria || '100% читаемость, отсутствие перекрытий, чистый постер.',
         reference_photo_url: item.reference_photo_url || null,
@@ -334,6 +335,8 @@ export class DatabaseRepository {
 
   saveReport(reportData) {
     const db = this._readDb();
+    const duplicate = (db.reports || []).find(report => report.id === reportData.id || (reportData.stamp_hash && report.stamp_hash === reportData.stamp_hash));
+    if (duplicate) return duplicate;
     const newReport = {
       id: reportData.id || `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       construction_id: reportData.construction_id,
@@ -369,11 +372,13 @@ export class DatabaseRepository {
 
   getSupplierReport(supplierId, period, status) {
     const db = this._readDb();
+    if (!(db.suppliers || []).some(supplier => supplier.id === supplierId)) return null;
     const constructions = (db.constructions || []).filter(c => c.supplier_id === supplierId && (!period || c.month_period === period));
     const ids = new Set(constructions.map(c => c.id));
     const reports = (db.reports || []).filter(r => ids.has(r.construction_id) && (!status || r.status === status));
-    const approved = reports.filter(r => r.status === 'APPROVED').length;
-    return { supplier_id: supplierId, period: period || null, totals: { constructions: constructions.length, reports: reports.length, approved, rejected: reports.filter(r => r.status === 'REJECTED').length, missing: Math.max(0, constructions.length - new Set(reports.map(r => r.construction_id)).size) }, constructions, reports };
+    const approvedConstructionIds = new Set(reports.filter(r => r.status === 'APPROVED').map(r => r.construction_id));
+    const rejectedConstructionIds = new Set(reports.filter(r => r.status === 'REJECTED').map(r => r.construction_id));
+    return { supplier_id: supplierId, period: period || null, totals: { constructions: constructions.length, reports: reports.length, approved: approvedConstructionIds.size, rejected: rejectedConstructionIds.size, missing: Math.max(0, constructions.length - approvedConstructionIds.size) }, constructions, reports };
   }
 
   // --- 5. KAM DASHBOARD AGGREGATES ---

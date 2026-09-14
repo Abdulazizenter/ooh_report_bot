@@ -31,6 +31,10 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
 
   assert.strictEqual(result.isFullyCompliant, true, 'ComplianceEngine should pass exact match');
   assert.strictEqual(result.overallStatus, 'COMPLIANT');
+  const zeroCoordinate = ComplianceEngine.calculateDistanceMeters(0, 0, 0, 0);
+  assert.strictEqual(zeroCoordinate, 0, 'Zero coordinates are valid GPS coordinates');
+  const missingGps = ComplianceEngine.evaluate({ fieldReport: { constructionCode: 'BB-MOW-0104' }, kamProgram });
+  assert.strictEqual(missingGps.isFullyCompliant, false, 'Missing GPS must not pass compliance');
   console.log('✓ ComplianceEngine passed');
 }
 
@@ -47,6 +51,8 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
     captureSource: 'live_camera_stream'
   });
   assert.strictEqual(validCheck.isRealTime, true, 'Recent live camera should pass');
+  const unknownSourceCheck = MediaAnalysisEngine.verifyRealTimeIntegrity({ captureTimestamp: recentTime, captureSource: 'unknown' });
+  assert.strictEqual(unknownSourceCheck.isRealTime, false, 'Unknown capture source must be rejected');
 
   // Stale timestamp (> 180 sec old) representing gallery photo should be rejected
   const oldTime = new Date(Date.now() - 300000).toISOString();
@@ -190,6 +196,7 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
 
 // 9. Spartan Workflow Service End-to-End Test (Pipeline branching)
 {
+  databaseRepository.saveUser({ id: 'usr_spec_01', telegram_id: 20001, full_name: 'Тестовый специалист', role: 'Specialist', supplier_id: 'sup_01', is_active: true });
   const originalKey = process.env.GEMINI_API_KEY;
   delete process.env.GEMINI_API_KEY;
 
