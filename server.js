@@ -147,11 +147,36 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start the server (only if not running in Vercel serverless environment)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, '0.0.0.0', () => {
+// Start the server (only if not running in Vercel serverless environment).
+// Keep a handle so the preview runner can stop this process cleanly before
+// starting a replacement; otherwise the old listener can keep port 3000 busy.
+let httpServer;
+
+if (!process.env.VERCEL) {
+  httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at http://0.0.0.0:${PORT}`);
   });
+
+  httpServer.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.warn(`Port ${PORT} is already in use; the existing preview server will continue serving the app.`);
+      process.exit(0);
+    }
+    console.error('Server listener error:', error);
+    process.exitCode = 1;
+  });
+
+  const shutdown = (signal) => {
+    if (!httpServer || !httpServer.listening) {
+      process.exit(0);
+    }
+
+    console.log(`Received ${signal}; closing the HTTP server.`);
+    httpServer.close(() => process.exit(0));
+  };
+
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 }
 
 // Export for Vercel serverless
