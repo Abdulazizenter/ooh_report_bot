@@ -207,6 +207,7 @@ app.get('/api/v2/admin/import-runs', (req, res) => res.json({ success: true, dat
 app.get('/api/v2/suppliers/:supplierId/report', SpartanController.getSupplierReport);
 app.post('/api/v2/admin/clear-db', SpartanController.adminClearDatabase);
 app.post('/api/v2/admin/import-constructions', SpartanController.adminImportConstructions);
+app.get('/api/v2/user/me', SpartanController.getMe);
 app.get('/api/v2/user/:telegramId', SpartanController.getUserProfile);
 app.get('/api/v2/specialist/nearby', SpartanController.getNearbyConstructions);
 app.post('/api/v2/specialist/report', SpartanController.submitSpecialistReport);

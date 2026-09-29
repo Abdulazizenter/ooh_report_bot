@@ -163,13 +163,45 @@ function simple(title,desc){
 }
 
 function render(){
-  document.querySelectorAll('.nav button').forEach(b=>{
-    const active=b.dataset.view===state.view;
-    b.classList.toggle('active',active);
-    b.toggleAttribute('aria-current',active);
-    if(active)b.setAttribute('aria-current','page');
-  });
-  $('#app').innerHTML=state.loading?'<div class="card section empty">Загружаем рабочие данные…</div>':state.view==='overview'?overview():state.view==='registry'?registry():state.view==='field'?field():state.view==='programs'?programsView():state.view==='archive'?archiveView():simple('Настройки','Управление профилем, синхронизацией и правилами проверки.');
+  const role = state.user?.role || 'pending';
+  const navHTML = state.view === 'login' ? '' : `
+    <p class="nav-title">Операционный центр</p>
+    ${['admin','supplier'].includes(role) ? `<button type="button" class="${state.view==='overview'?'active':''}" data-view="overview"><span class="nav-icon">◈</span>Обзор</button>` : ''}
+    ${['admin','specialist'].includes(role) ? `<button type="button" class="${state.view==='field'?'active':''}" data-view="field"><span class="nav-icon">⌖</span>Полевой отчет</button>` : ''}
+    ${['admin','supplier'].includes(role) ? `<button type="button" class="${state.view==='registry'?'active':''}" data-view="registry"><span class="nav-icon">▤</span>Реестр отчетов</button>` : ''}
+    ${['admin','supplier'].includes(role) ? `
+    <p class="nav-title" style="margin-top:22px">Данные</p>
+    ${role==='admin' ? `<button type="button" class="${state.view==='programs'?'active':''}" data-view="programs"><span class="nav-icon">⌘</span>Адресные программы</button>` : ''}
+    <button type="button" class="${state.view==='archive'?'active':''}" data-view="archive"><span class="nav-icon">□</span>Архив</button>
+    ` : ''}
+    <p class="nav-title" style="margin-top:22px">Система</p>
+    <button type="button" class="${state.view==='settings'?'active':''}" data-view="settings"><span class="nav-icon">⚙</span>Настройки</button>
+  `;
+  
+  const navEl = $('.nav');
+  if(navEl) navEl.innerHTML = navHTML;
+
+  const topActions = $('.top-actions');
+  if (topActions) {
+    if (state.view === 'login') {
+      topActions.style.display = 'none';
+    } else {
+      topActions.style.display = 'flex';
+      const initials = (state.user?.full_name || state.user?.username || 'U').substring(0,2).toUpperCase();
+      const avatar = topActions.querySelector('.avatar');
+      if (avatar) avatar.textContent = initials;
+    }
+  }
+
+  $('#app').innerHTML = state.loading ? '<div class="card section empty">Загружаем рабочие данные…</div>' :
+    state.view === 'login' ? loginView() :
+    state.view === 'overview' ? overview() :
+    state.view === 'registry' ? registry() :
+    state.view === 'field' ? field() :
+    state.view === 'programs' ? programsView() :
+    state.view === 'archive' ? archiveView() :
+    simple('Настройки', 'Управление профилем, синхронизацией и правилами проверки.');
+  
   wireEvents();
 }
 
@@ -283,48 +315,86 @@ function wireEvents(){
   }
 }
 
-async function load(){
+function loginView(){
+  return `<section class="hero" style="justify-content:center;text-align:center;margin-top:10vh">
+    <div><div class="eyebrow">Добро пожаловать в OOH SDIP</div><h2>Вход в систему</h2><p style="margin: 10px auto">Авторизуйтесь для доступа к рабочему пространству вашей роли.</p>
+    <div style="margin-top:24px;display:flex;flex-direction:column;gap:12px;max-width:300px;margin-left:auto;margin-right:auto">
+      <input type="text" id="login-id" placeholder="Telegram ID (например, 85993905)" style="padding:12px;border-radius:8px;border:1px solid var(--line);background:#121a23;color:#fff" />
+      <button class="primary" id="btn-login-submit">Войти</button>
+      <button class="link" id="btn-login-owner" style="margin-top:12px">Войти как Владелец (Test)</button>
+    </div></div>
+  </section>`;
+}
+
+async function doLogin(telegramUser) {
+  state.loading = true;
+  render();
+  const authRes = await api('/api/v2/user/auth', { method: 'POST', body: JSON.stringify({ telegram_user: telegramUser }) }).catch(e => { toast(e.message); return null; });
+  if(authRes?.user) state.user = authRes.user;
+  if(authRes?.token) {
+    state.token = authRes.token;
+    localStorage.setItem('ooh_token', authRes.token);
+  }
+  await fetchWorkspace();
+}
+
+async function fetchWorkspace() {
+  if(!state.token) {
+    state.view = 'login';
+    state.loading = false;
+    render();
+    return;
+  }
   try{
-    if(window.Telegram?.WebApp?.initDataUnsafe?.user){
-      const tgUser=window.Telegram.WebApp.initDataUnsafe.user;
-      const authRes = await api('/api/v2/user/auth',{method:'POST',body:JSON.stringify({telegram_user:tgUser})}).catch(console.warn);
-      if(authRes?.user) {
-        state.user = authRes.user;
-      }
-      if(authRes?.token) {
-        state.token = authRes.token;
-        localStorage.setItem('ooh_token', authRes.token);
-      }
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-    } else {
-      // Fallback dev/owner profile
-      const localOwner = { id: 85993905, first_name: 'Abdulaziz', username: 'Abdulazizenter' };
-      const authRes = await api('/api/v2/user/auth', { method: 'POST', body: JSON.stringify({ telegram_user: localOwner }) }).catch(console.warn);
-      if(authRes?.user) state.user = authRes.user;
-      if(authRes?.token) {
-        state.token = authRes.token;
-        localStorage.setItem('ooh_token', authRes.token);
-      }
+    if(!state.user) {
+      const meRes = await api('/api/v2/user/me');
+      if(meRes?.user) state.user = meRes.user;
+    }
+    
+    // Set default view based on role
+    if (state.user?.role === 'specialist' && state.view === 'overview') {
+      state.view = 'field';
     }
 
-    const [reports,stats,archive,progs]=await Promise.all([
-      api('/api/reports'),
-      api('/api/stats'),
-      api('/api/archive/folders').catch(()=>({data:[]})),
-      api('/api/kam/programs').catch(()=>({data:[]}))
-    ]);
-    state.reports=reports.data||[];
-    state.stats=stats.data||null;
-    state.archive=archive.data||[];
-    state.programs=progs.data||[];
+    const promises = [api('/api/reports')];
+    if (state.user?.role === 'admin' || state.user?.role === 'supplier') {
+       promises.push(api('/api/stats'));
+       promises.push(api('/api/archive/folders').catch(()=>({data:[]})));
+       promises.push(api('/api/kam/programs').catch(()=>({data:[]})));
+    }
+    
+    const results = await Promise.all(promises);
+    state.reports = results[0].data || [];
+    if (results[1]) state.stats = results[1].data || null;
+    if (results[2]) state.archive = results[2].data || [];
+    if (results[3]) state.programs = results[3].data || [];
   }catch(error){
-    toast(error.message);
+    console.warn('Workspace fetch error:', error);
+    if(error.message.includes('вход в систему') || error.message.includes('UNAUTHENTICATED')) {
+      state.token = '';
+      state.user = null;
+      localStorage.removeItem('ooh_token');
+      state.view = 'login';
+    } else {
+      toast(error.message);
+    }
   }finally{
     state.loading=false;
     render();
   }
 }
+
+async function load(){
+  if(window.Telegram?.WebApp?.initDataUnsafe?.user){
+    const tgUser=window.Telegram.WebApp.initDataUnsafe.user;
+    await doLogin(tgUser);
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  } else {
+    await fetchWorkspace();
+  }
+}
+
 
 document.addEventListener('click',event=>{
   const view=event.target.closest('[data-view]');
@@ -360,6 +430,16 @@ document.addEventListener('click',event=>{
         a.click();
         URL.revokeObjectURL(url);
       }).catch(err => toast('Ошибка экспорта: ' + err.message));
+  }
+  
+  if (event.target.id === 'btn-login-submit') {
+    const input = $('#login-id');
+    const val = input ? input.value.trim() : '';
+    if(!val) return toast('Введите Telegram ID');
+    doLogin({ id: Number(val), username: 'user_' + val });
+  }
+  if (event.target.id === 'btn-login-owner') {
+    doLogin({ id: 85993905, first_name: 'Abdulaziz', username: 'Abdulazizenter' });
   }
 });
 
