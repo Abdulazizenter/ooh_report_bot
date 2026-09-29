@@ -12,6 +12,10 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/storage/:path*",
+      "destination": "/api/index.js"
+    },
+    {
       "source": "/health",
       "destination": "/api/index.js"
     }
