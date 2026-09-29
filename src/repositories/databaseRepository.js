@@ -84,13 +84,51 @@ export class DatabaseRepository {
     for (const c of this.cache.constructions) await this._query('INSERT INTO constructions (id,code,name,supplier_id,type,side,address_location,latitude,longitude,tolerance_meters,month_period) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (id) DO NOTHING', [c.id,c.code,c.type,c.supplier_id,c.type,c.side,c.address_location,c.latitude,c.longitude,c.tolerance_meters,c.month_period]);
     for (const r of this.cache.reports) await this._persistReport(r);
   }
-  async _persistUser(user) { await this._query('INSERT INTO users (id,email,username,name,role,organization,supplier_id,telegram_id,full_name,is_active,active,avatar,description,password_hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10,$11,$12,$13) ON CONFLICT (id) DO UPDATE SET role=EXCLUDED.role,is_active=EXCLUDED.is_active,active=EXCLUDED.active,name=EXCLUDED.name', [user.id,user.email ?? `${user.username || user.id}@seed.local`,user.username,user.name ?? user.full_name,user.role,user.organization,user.supplier_id,user.telegram_id,user.full_name,user.is_active ?? user.active ?? true,user.avatar,user.description,user.password_hash ?? 'seed-disabled']); }
+  async _persistUser(user) {
+    await this._query(
+      `INSERT INTO users (id, email, username, name, role, organization, supplier_id, telegram_id, full_name, is_active, active, avatar, description, password_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11, $12, $13)
+       ON CONFLICT (id) DO UPDATE SET
+         role = EXCLUDED.role,
+         is_active = EXCLUDED.is_active,
+         active = EXCLUDED.active,
+         name = EXCLUDED.name,
+         full_name = EXCLUDED.full_name,
+         username = EXCLUDED.username,
+         supplier_id = EXCLUDED.supplier_id,
+         telegram_id = EXCLUDED.telegram_id,
+         updated_at = now()`,
+      [
+        user.id,
+        user.email ?? `${user.username || user.id}@seed.local`,
+        user.username,
+        user.name ?? user.full_name,
+        user.role,
+        user.organization,
+        user.supplier_id,
+        user.telegram_id,
+        user.full_name,
+        user.is_active ?? user.active ?? true,
+        user.avatar,
+        user.description,
+        user.password_hash ?? 'seed-disabled'
+      ]
+    );
+  }
   async _persistReport(r) { await this._query('INSERT INTO reports (id,owner_id,construction_code,status,payload,created_at,captured_at) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING', [r.id,r.owner_id ?? r.specialist_id ?? 'system',r.construction_code ?? r.construction_id,r.status,r,r.created_at,r.captured_at]); }
   clearDb() { this.cache = { users: [], suppliers: [], constructions: [], reports: [], import_runs: [] }; void Promise.all(['users','suppliers','constructions','reports','import_runs'].map((table) => this._query(`TRUNCATE TABLE ${table}`))); return this.cache; }
   getUsers() { return this.cache.users; }
   getUserById(id) { return this.cache.users.find((u) => u.id === id) || null; }
   getUserByTelegramId(id) { return this.cache.users.find((u) => String(u.telegram_id) === String(id)) || null; }
-  saveUser(user) { const index = this.cache.users.findIndex((u) => u.id === user.id); if (index >= 0) this.cache.users[index] = user; else this.cache.users.push(user); void this._persistUser(user); return user; }
+  saveUser(user) {
+    const index = this.cache.users.findIndex((u) => u.id === user.id);
+    if (index >= 0) this.cache.users[index] = user;
+    else this.cache.users.push(user);
+    return this._persistUser(user).then(() => user).catch((err) => {
+      console.error('[DB] Persist user error:', err.message);
+      return user;
+    });
+  }
   getSuppliers() { return this.cache.suppliers; }
   getSupplierById(id) { return this.cache.suppliers.find((s) => s.id === id) || null; }
   getConstructions(filters = {}) { return this.cache.constructions.filter((c) => (!filters.supplier_id || c.supplier_id === filters.supplier_id) && (!filters.month_period || c.month_period === filters.month_period) && (!filters.code || c.code.toLowerCase().includes(filters.code.toLowerCase()))); }

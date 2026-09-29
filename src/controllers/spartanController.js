@@ -72,13 +72,17 @@ export class SpartanController {
   static async authenticateUser(req, res) {
     try {
       await databaseRepository.waitUntilReady();
-      const { telegram_user } = req.body;
-      if (!telegram_user || !Number.isSafeInteger(Number(telegram_user.id))) return res.status(400).json({ success: false, error: 'Некорректный Telegram user' });
-      let user = databaseRepository.getUserByTelegramId(telegram_user.id);
+      const rawUser = req.body.telegram_user || req.body.user || req.body;
+      const tgIdStr = String(rawUser?.id || rawUser?.telegram_id || '');
+      if (!tgIdStr || tgIdStr === 'undefined' || tgIdStr === 'null') {
+        return res.status(400).json({ success: false, error: 'Некорректный Telegram user: отсутствует ID' });
+      }
+      const tgId = Number(tgIdStr);
+      let user = databaseRepository.getUserByTelegramId(tgIdStr);
       
-      const tgId = Number(telegram_user.id);
+      const username = (rawUser.username || '').toLowerCase();
       const ownerUsernames = ['abdulazizenter', 'abdulaziz_ibt'];
-      const isOwner = tgId === 85993905 || (telegram_user.username && ownerUsernames.includes(telegram_user.username.toLowerCase()));
+      const isOwner = tgId === 85993905 || (username && ownerUsernames.includes(username));
       const allUsers = databaseRepository.getUsers();
       const hasActiveAdmin = allUsers.some(u => u.role === 'admin' && u.is_active !== false);
 
@@ -86,18 +90,20 @@ export class SpartanController {
         // Automatic registration for new users
         const shouldBeAdmin = isOwner || !hasActiveAdmin;
         const newUserId = shouldBeAdmin ? `usr_admin_${Date.now()}` : `usr_pending_${Date.now()}`;
+        const fullName = `${rawUser.first_name || ''} ${rawUser.last_name || ''}`.trim() || rawUser.name || 'Пользователь Telegram';
         const newUser = {
           id: newUserId,
           telegram_id: tgId,
-          username: telegram_user.username || '',
-          full_name: `${telegram_user.first_name || ''} ${telegram_user.last_name || ''}`.trim() || 'Пользователь',
+          username: rawUser.username || '',
+          full_name: fullName,
+          name: fullName,
           role: shouldBeAdmin ? 'admin' : 'pending',
           supplier_id: shouldBeAdmin ? 'sup_01' : null,
           is_active: shouldBeAdmin ? true : false,
           created_at: new Date().toISOString()
         };
         
-        databaseRepository.saveUser(newUser);
+        await databaseRepository.saveUser(newUser);
         
         if (req.workspace) {
           // Attempt to sync to cloud if auth provided
@@ -115,7 +121,7 @@ export class SpartanController {
         user.role = 'admin';
         user.is_active = true;
         if (!user.supplier_id) user.supplier_id = 'sup_01';
-        databaseRepository.saveUser(user);
+        await databaseRepository.saveUser(user);
       }
       
       res.json({ success: true, user });
