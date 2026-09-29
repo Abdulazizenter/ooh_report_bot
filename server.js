@@ -120,6 +120,7 @@ app.use((req, res, next) => {
 });
 
 // Stored media is private; access must go through an authenticated controller.
+app.get('/storage/:org/:month/:file', apiAuth, ArchiveController.getFile);
 app.use('/storage', apiAuth, (req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Файл не найден' } });
 });

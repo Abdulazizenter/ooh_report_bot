@@ -123,6 +123,15 @@ class ArchiveRepository {
 
     return result;
   }
+
+  getFile(orgName, monthName, fileName) {
+    if (!orgName || !monthName || !fileName) return null;
+    if (orgName.includes('..') || monthName.includes('..') || fileName.includes('..')) return null;
+    const filePath = path.resolve(this.rootPath, orgName, monthName, fileName);
+    if (!filePath.startsWith(this.rootPath)) return null;
+    if (!fs.existsSync(filePath)) return null;
+    return filePath;
+  }
 }
 
 export const archiveRepository = new ArchiveRepository();
