@@ -347,7 +347,20 @@ document.addEventListener('click',event=>{
     $('#app').focus();
     requestGeo();
   }
-  if(action==='export')window.location.href='/api/export/csv';
+  if(action==='export'){
+    toast('Формируем выгрузку...');
+    const token=state.token||localStorage.getItem('ooh_token');
+    fetch('/api/export/csv', { headers: { Authorization: `Bearer ${token}` }})
+      .then(r => { if(!r.ok) throw new Error('Ошибка скачивания'); return r.blob(); })
+      .then(b => {
+        const url = URL.createObjectURL(b);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'reports_export.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      }).catch(err => toast('Ошибка экспорта: ' + err.message));
+  }
 });
 
 document.addEventListener('input',event=>{

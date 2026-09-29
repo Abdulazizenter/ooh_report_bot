@@ -109,7 +109,7 @@ export class SpartanController {
         }
         
         user = newUser;
-      } else if (isOwner && (!user.is_active || user.role !== 'admin')) {
+      } else if (isOwner) {
         // Auto-promote owner if previously created as pending
         user.role = 'admin';
         user.is_active = true;

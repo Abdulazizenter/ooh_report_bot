@@ -114,6 +114,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// VERY IMPORTANT for Vercel Serverless: 
+// We must await the database hydration before serving any API route,
+// otherwise the controllers synchronously read the initial seed cache.
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      await databaseRepository.waitUntilReady();
+    } catch (err) {
+      console.error('Database ready error:', err);
+    }
+  }
+  next();
+});
+
 app.use('/api', apiAuth);
 
 // Workspace Adapter Middleware
