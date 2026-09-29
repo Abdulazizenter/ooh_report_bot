@@ -184,7 +184,7 @@ app.get('/api/archive/folders', ArchiveController.getFolders);
 app.post('/api/v2/user/auth', async (req, res, next) => {
   const originalJson = res.json.bind(res);
   res.json = (body) => {
-    if (body?.success && body.user?.is_active !== false && body.user?.id) {
+    if (body?.success && body.user?.id) {
       const token = signSession(body.user.id);
       body.token = token;
       res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=28800`);
