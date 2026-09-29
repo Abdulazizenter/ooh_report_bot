@@ -14,7 +14,8 @@ export class SpartanWorkflowService {
       ? databaseRepository.getUserByTelegramId(specialistTelegramId)
       : null;
 
-    if (user?.role !== 'Specialist' || user.is_active === false || !user.supplier_id) return [];
+    const allowedRoles = ['Specialist', 'specialist', 'field', 'admin'];
+    if (!user || !allowedRoles.includes(user.role) || user.is_active === false || !user.supplier_id) return [];
     if (!isValidCoordinate(latitude, -90, 90) || !isValidCoordinate(longitude, -180, 180)) return [];
 
     return databaseRepository.getNearbyConstructions({
@@ -40,7 +41,8 @@ export class SpartanWorkflowService {
     await databaseRepository.waitUntilReady();
     // 1. Verify User
     const user = databaseRepository.getUserByTelegramId(telegramId);
-    if (!user || user.role !== 'Specialist' || user.is_active === false || !user.supplier_id) {
+    const allowedRoles = ['Specialist', 'specialist', 'field', 'admin'];
+    if (!user || !allowedRoles.includes(user.role) || user.is_active === false || !user.supplier_id) {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Пользователь не авторизован как активный специалист с назначенным поставщиком.'], reasoning: 'Сначала завершите регистрацию и дождитесь назначения поставщика.' };
     }
 

@@ -76,17 +76,23 @@ export class SpartanController {
       if (!telegram_user || !Number.isSafeInteger(Number(telegram_user.id))) return res.status(400).json({ success: false, error: 'Некорректный Telegram user' });
       let user = databaseRepository.getUserByTelegramId(telegram_user.id);
       
+      const tgId = Number(telegram_user.id);
+      const isOwner = tgId === 85993905 || (telegram_user.username && telegram_user.username.toLowerCase() === 'abdulazizenter');
+      const allUsers = databaseRepository.getUsers();
+      const hasActiveAdmin = allUsers.some(u => u.role === 'admin' && u.is_active !== false);
+
       if (!user) {
         // Automatic registration for new users
-        const newUserId = `usr_pending_${Date.now()}`;
+        const shouldBeAdmin = isOwner || !hasActiveAdmin;
+        const newUserId = shouldBeAdmin ? `usr_admin_${Date.now()}` : `usr_pending_${Date.now()}`;
         const newUser = {
           id: newUserId,
-          telegram_id: telegram_user.id,
+          telegram_id: tgId,
           username: telegram_user.username || '',
-          full_name: `${telegram_user.first_name || ''} ${telegram_user.last_name || ''}`.trim(),
-          role: 'pending',
-          supplier_id: null,
-          is_active: false,
+          full_name: `${telegram_user.first_name || ''} ${telegram_user.last_name || ''}`.trim() || 'Пользователь',
+          role: shouldBeAdmin ? 'admin' : 'pending',
+          supplier_id: shouldBeAdmin ? 'sup_01' : null,
+          is_active: shouldBeAdmin ? true : false,
           created_at: new Date().toISOString()
         };
         
@@ -103,6 +109,12 @@ export class SpartanController {
         }
         
         user = newUser;
+      } else if (isOwner && (!user.is_active || user.role !== 'admin')) {
+        // Auto-promote owner if previously created as pending
+        user.role = 'admin';
+        user.is_active = true;
+        if (!user.supplier_id) user.supplier_id = 'sup_01';
+        databaseRepository.saveUser(user);
       }
       
       res.json({ success: true, user });

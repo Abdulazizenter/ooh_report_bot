@@ -44,7 +44,17 @@ const signSession = (userId) => {
 };
 
 const readSession = (req) => {
-  const token = req.headers.cookie?.split(';').map((value) => value.trim()).find((value) => value.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
+  let token = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  }
+  if (!token && req.query?.token) {
+    token = req.query.token;
+  }
+  if (!token && req.headers.cookie) {
+    token = req.headers.cookie.split(';').map((value) => value.trim()).find((value) => value.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
+  }
   if (!token || !SESSION_SECRET) return null;
   const [payload, signature] = token.split('.');
   if (!payload || !signature) return null;
@@ -161,7 +171,9 @@ app.post('/api/v2/user/auth', async (req, res, next) => {
   const originalJson = res.json.bind(res);
   res.json = (body) => {
     if (body?.success && body.user?.is_active !== false && body.user?.id) {
-      res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${signSession(body.user.id)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=28800`);
+      const token = signSession(body.user.id);
+      body.token = token;
+      res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=28800`);
     }
     return originalJson(body);
   };
