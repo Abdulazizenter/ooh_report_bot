@@ -1,17 +1,33 @@
-import { kamProgramRepository } from '../repositories/kamProgramRepository.js';
-import { reportRepository } from '../repositories/reportRepository.js';
+import { databaseRepository } from '../repositories/databaseRepository.js';
 import { MediaAnalysisEngine } from '../engines/mediaAnalysisEngine.js';
 
 class KamProgramService {
-  constructor() {
-    this.repository = kamProgramRepository;
-  }
-
   getPrograms(contractorId = null) {
-    if (contractorId) {
-      return this.repository.getByContractorId(contractorId);
-    }
-    return this.repository.getAll();
+    const suppliers = databaseRepository.getSuppliers();
+    const constructions = databaseRepository.getConstructions();
+
+    return suppliers
+      .filter(s => !contractorId || s.id === contractorId)
+      .map(s => {
+        const csts = constructions.filter(c => c.supplier_id === s.id);
+        return {
+          contractorId: s.id,
+          contractorName: s.name,
+          inn: s.inn,
+          constructions: csts.map(c => ({
+            code: c.code,
+            type: c.type,
+            side: c.side,
+            address: c.address_location,
+            latitude: c.latitude,
+            longitude: c.longitude
+          })),
+          masterRequirementFile: {
+            fileName: 'master_tz.pdf',
+            criteriaSummary: 'Стандартные требования OOH SDIP к проверке'
+          }
+        };
+      });
   }
 
   /**
