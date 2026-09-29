@@ -77,7 +77,8 @@ export class SpartanController {
       let user = databaseRepository.getUserByTelegramId(telegram_user.id);
       
       const tgId = Number(telegram_user.id);
-      const isOwner = tgId === 85993905 || (telegram_user.username && telegram_user.username.toLowerCase() === 'abdulazizenter');
+      const ownerUsernames = ['abdulazizenter', 'abdulaziz_ibt'];
+      const isOwner = tgId === 85993905 || (telegram_user.username && ownerUsernames.includes(telegram_user.username.toLowerCase()));
       const allUsers = databaseRepository.getUsers();
       const hasActiveAdmin = allUsers.some(u => u.role === 'admin' && u.is_active !== false);
 
