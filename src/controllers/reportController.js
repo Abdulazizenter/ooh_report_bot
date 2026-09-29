@@ -1,4 +1,5 @@
 import { reportService } from '../services/reportService.js';
+import { databaseRepository } from '../repositories/databaseRepository.js';
 
 export class ReportController {
   static getReports(req, res) {
@@ -122,7 +123,11 @@ export class ReportController {
 
   static getUsers(req, res) {
     try {
-      const users = reportService.getUsers();
+      const users = databaseRepository.getUsers().map(u => ({
+        ...u,
+        full_name: u.full_name || u.name,
+        is_active: u.is_active ?? u.active ?? false
+      }));
       res.json({ success: true, count: users.length, data: users });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -132,7 +137,7 @@ export class ReportController {
   static getUser(req, res) {
     try {
       const { id } = req.params;
-      const user = reportService.getUserById(id);
+      const user = databaseRepository.getUserById(id);
       if (!user) {
         return res.status(404).json({ success: false, error: 'Пользователь не найден' });
       }
@@ -145,14 +150,19 @@ export class ReportController {
   static updateUser(req, res) {
     try {
       const { id } = req.params;
-      const requestingUser = {
-        id: req.headers['x-user-id'] || 'usr_admin',
-        role: req.headers['x-user-role'] || 'admin',
-        name: req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name']) : 'Главный Администратор OOH'
-      };
-
-      const updated = reportService.updateUser(id, req.body, requestingUser);
-      res.json({ success: true, message: 'Данные пользователя успешно обновлены', data: updated });
+      const user = databaseRepository.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'Пользователь не найден' });
+      }
+      if (req.body.role !== undefined) user.role = req.body.role;
+      if (req.body.is_active !== undefined) {
+        user.is_active = Boolean(req.body.is_active);
+        user.active = Boolean(req.body.is_active);
+      }
+      if (req.body.supplier_id !== undefined) user.supplier_id = req.body.supplier_id;
+      if (req.body.full_name !== undefined) user.full_name = req.body.full_name;
+      databaseRepository.saveUser(user);
+      res.json({ success: true, message: 'Данные пользователя успешно обновлены', data: user });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
     }

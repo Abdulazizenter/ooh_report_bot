@@ -326,16 +326,20 @@ function pendingView(){
 
 function usersView(){
   const users = state.users || [];
-  return `<section class="hero"><div><div class="eyebrow">Управление доступом</div><h2>Пользователи</h2><p>Управление ролями и доступом к системе.</p></div></section>
-  <section class="card section"><div class="table-wrap"><table class="table"><thead><tr><th>Пользователь / ID</th><th>Роль</th><th>Статус</th><th>Действия</th></tr></thead><tbody>
-  ${users.map(u => `<tr><td><strong>${escapeHtml(u.full_name || u.name)}</strong><br><span class="muted">${escapeHtml(u.username || u.telegram_id)}</span></td>
-  <td>${escapeHtml(u.role)}</td>
-  <td><span class="badge ${u.is_active ? 'badge-green' : 'badge-cyan'}">${u.is_active ? 'Активен' : 'Ожидает'}</span></td>
+  return `<section class="hero"><div><div class="eyebrow">Управление доступом</div><h2>Пользователи</h2><p>Реальные пользователи системы из базы данных Neon PostgreSQL.</p></div></section>
+  <section class="card section"><div class="table-wrap"><table class="table"><thead><tr><th>Пользователь / Ник</th><th>Telegram ID</th><th>Роль</th><th>Статус</th><th>Действия</th></tr></thead><tbody>
+  ${users.map(u => `<tr>
+  <td><strong>${escapeHtml(u.full_name || u.name || 'Без имени')}</strong><br><span class="muted">${escapeHtml(u.username ? '@' + u.username : 'без ника')}</span></td>
+  <td><code>${escapeHtml(u.telegram_id || u.id)}</code></td>
+  <td><span class="badge ${u.role === 'admin' ? 'badge-cyan' : 'badge-green'}">${escapeHtml(u.role || 'pending')}</span></td>
+  <td><span class="status ${u.is_active ? 'approved' : 'pending'}">${u.is_active ? 'Активен' : 'Ожидает'}</span></td>
   <td>
-    ${!u.is_active ? `<button class="link btn-activate-user" data-id="${escapeHtml(u.id)}">Активировать</button>` : ''}
-    ${u.role !== 'admin' ? `<button class="link btn-make-admin" data-id="${escapeHtml(u.id)}" style="margin-left:8px">Сделать Admin</button>` : ''}
+    ${!u.is_active ? `<button class="primary btn-activate-user" style="padding:6px 12px;font-size:11px" data-id="${escapeHtml(u.id)}">Подтвердить</button>` : ''}
+    ${u.is_active && u.role !== 'admin' ? `<button class="link btn-make-admin" data-id="${escapeHtml(u.id)}" style="margin-left:8px">Сделать Admin</button>` : ''}
+    ${u.is_active && u.id !== state.user?.id ? `<button class="link btn-deactivate-user" data-id="${escapeHtml(u.id)}" style="margin-left:8px;color:var(--red)">Отключить</button>` : ''}
+    ${u.id === state.user?.id ? '<span class="muted" style="margin-left:8px">(Это вы)</span>' : ''}
   </td></tr>`).join('')}
-  ${!users.length ? '<tr><td colspan="4" class="empty">Нет пользователей</td></tr>' : ''}
+  ${!users.length ? '<tr><td colspan="5" class="empty">Нет зарегистрированных пользователей</td></tr>' : ''}
   </tbody></table></div></section>`;
 }
 
@@ -496,6 +500,14 @@ document.addEventListener('click',event=>{
   if (adminBtn) {
     const id = adminBtn.dataset.id;
     api(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: true, role: 'admin' }) })
+      .then(() => fetchWorkspace())
+      .catch(e => toast(e.message));
+  }
+
+  const deactivateBtn = event.target.closest('.btn-deactivate-user');
+  if (deactivateBtn) {
+    const id = deactivateBtn.dataset.id;
+    api(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: false }) })
       .then(() => fetchWorkspace())
       .catch(e => toast(e.message));
   }

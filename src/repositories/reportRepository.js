@@ -17,76 +17,22 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Initial seed users: 1 unified Master Admin + individual Contractor profiles
+// Initial seed users: Master Admin
 const INITIAL_USERS = [
   {
-    id: "usr_admin",
-    username: "admin",
-    name: "Главный Администратор OOH",
+    id: "usr_admin_owner",
+    username: "abdulaziz_ibt",
+    name: "Абдулазиз Мамашарипов",
+    full_name: "Абдулазиз Мамашарипов",
     role: "admin",
     organization: "Единый Центр Мониторинга и Аудита OOH",
-    inn: "7700000001",
-    phone: "+7 (800) 555-35-35",
-    telegramUser: "@ooh_master_admin",
+    telegram_id: 85993905,
+    telegramUser: "@abdulaziz_ibt",
     active: true,
+    is_active: true,
+    supplier_id: "sup_01",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-    description: "Единый наблюдатель: полный аудит всех подрядчиков, конструкций, проверка и редактирование значений отчетов."
-  },
-  {
-    id: "usr_cnt_01",
-    username: "abdulaziz",
-    name: "Абдулазиз Каримов",
-    role: "contractor",
-    contractorId: "cnt_01",
-    organization: "ООО «МедиаАутдор Групп»",
-    inn: "7701928341",
-    phone: "+7 (999) 450-88-21",
-    telegramUser: "@ooh_abdulaziz",
-    active: true,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-    description: "Монтажная служба САО/СЗАО Москвы"
-  },
-  {
-    id: "usr_cnt_02",
-    username: "voronov",
-    name: "Михаил Воронов",
-    role: "contractor",
-    contractorId: "cnt_02",
-    organization: "ООО «Русс Аутдор Монтаж»",
-    inn: "7722334455",
-    phone: "+7 (916) 123-45-67",
-    telegramUser: "@voronov_m",
-    active: true,
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
-    description: "Монтажная бригада суперсайтов и МКАД"
-  },
-  {
-    id: "usr_cnt_03",
-    username: "smirnov",
-    name: "Алексей Смирнов",
-    role: "contractor",
-    contractorId: "cnt_03",
-    organization: "ИП «Смирнов Наружная Реклама»",
-    inn: "773344556677",
-    phone: "+7 (926) 987-65-43",
-    telegramUser: "@smirnov_outdoor",
-    active: true,
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80",
-    description: "Билборды и ситиборды Западного округа"
-  },
-  {
-    id: "usr_cnt_04",
-    username: "seleznev",
-    name: "Дмитрий Селезнев",
-    role: "contractor",
-    contractorId: "cnt_04",
-    organization: "АО «Городской Формат Про»",
-    inn: "7711223344",
-    phone: "+7 (903) 555-77-88",
-    telegramUser: "@seleznev_ooh",
-    active: true,
-    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80",
-    description: "Монтажная служба Санкт-Петербург и Северо-Запад"
+    description: "Владелец и Главный Администратор OOH."
   }
 ];
 
