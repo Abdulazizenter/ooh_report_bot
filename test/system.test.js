@@ -281,4 +281,37 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log('✓ Multi-role supplier assignment and geo-scoping passed');
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (12/12) ---');
+// 14. Telegram Web App Cryptographic HMAC Verification Test
+{
+  const { validateTelegramInitData } = await import('../src/utils/telegramAuth.js');
+  const crypto = await import('node:crypto');
+
+  const botToken = '123456789:ABCdefGHIjklMNOpqrSTUvwxYZ';
+  const userObj = { id: 85993905, first_name: 'Abdulaziz', username: 'abdulazizenter' };
+  const userJson = JSON.stringify(userObj);
+  const authDate = Math.floor(Date.now() / 1000);
+
+  // Construct valid data_check_string
+  const params = {
+    auth_date: String(authDate),
+    query_id: 'AAGh123',
+    user: userJson
+  };
+  const checkString = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('\n');
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  const validHash = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
+
+  const validInitData = `auth_date=${authDate}&query_id=AAGh123&user=${encodeURIComponent(userJson)}&hash=${validHash}`;
+  const verifiedUser = validateTelegramInitData(validInitData, botToken);
+  assert.ok(verifiedUser, 'Valid Telegram initData must be verified successfully');
+  assert.strictEqual(verifiedUser.id, 85993905);
+
+  // Invalid hash tamper check
+  const tamperedInitData = `auth_date=${authDate}&query_id=AAGh123&user=${encodeURIComponent(userJson)}&hash=invalid_fake_hash`;
+  const rejectedUser = validateTelegramInitData(tamperedInitData, botToken);
+  assert.strictEqual(rejectedUser, null, 'Tampered Telegram initData must be rejected');
+  console.log('✓ Telegram Web App HMAC-SHA256 verification passed');
+}
+
+console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (13/13) ---');
+

@@ -1,6 +1,7 @@
 import { spartanWorkflowService } from '../services/spartanWorkflowService.js';
 import { databaseRepository } from '../repositories/databaseRepository.js';
 import { normalizeWorkbook } from '../services/excelImportService.js';
+import { validateTelegramInitData } from '../utils/telegramAuth.js';
 
 export class SpartanController {
   static async syncWithCloud(req, res) {
@@ -72,7 +73,18 @@ export class SpartanController {
   static async authenticateUser(req, res) {
     try {
       await databaseRepository.waitUntilReady();
-      const rawUser = req.body.telegram_user || req.body.user || req.body;
+      let rawUser = req.body.telegram_user || req.body.user || req.body;
+      
+      // If Telegram WebApp initData is provided, cryptographically verify it
+      if (req.body.initData) {
+        const verifiedUser = validateTelegramInitData(req.body.initData, process.env.TELEGRAM_BOT_TOKEN);
+        if (verifiedUser) {
+          rawUser = verifiedUser;
+        } else if (process.env.TELEGRAM_BOT_TOKEN) {
+          return res.status(401).json({ success: false, error: 'Поддельная подпись Telegram WebApp' });
+        }
+      }
+
       const tgIdStr = String(rawUser?.id || rawUser?.telegram_id || '');
       if (!tgIdStr || tgIdStr === 'undefined' || tgIdStr === 'null') {
         return res.status(400).json({ success: false, error: 'Некорректный Telegram user: отсутствует ID' });
