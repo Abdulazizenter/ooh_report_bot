@@ -9,7 +9,7 @@ export class SpartanWorkflowService {
   /**
    * Specialist: Get nearby constructions sorted by distance
    */
-  getNearbyTasks({ latitude, longitude, specialistTelegramId }) {
+  getNearbyTasks({ latitude, longitude, specialistTelegramId, monthPeriod = null }) {
     const user = specialistTelegramId
       ? databaseRepository.getUserByTelegramId(specialistTelegramId)
       : null;
@@ -21,7 +21,8 @@ export class SpartanWorkflowService {
     return databaseRepository.getNearbyConstructions({
       latitude: Number(latitude),
       longitude: Number(longitude),
-      supplier_id: user.supplier_id
+      supplier_id: user.supplier_id,
+      month_period: monthPeriod
     });
   }
 

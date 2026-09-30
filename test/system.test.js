@@ -252,4 +252,33 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log('✓ Postgres repository contract passed');
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (11/11) ---');
+// 12. Multi-role authentication & user supplier assignment
+{
+  const testUser = {
+    id: 'usr_test_specialist_99',
+    telegram_id: 99123456,
+    full_name: 'Тестовый Специалист',
+    role: 'specialist',
+    supplier_id: 'sup_01',
+    is_active: true
+  };
+  databaseRepository.saveUser(testUser);
+
+  const found = databaseRepository.getUserByTelegramId('99123456');
+  assert.ok(found, 'Specialist must be found by telegram_id');
+  assert.strictEqual(found.role, 'specialist');
+  assert.strictEqual(found.supplier_id, 'sup_01');
+
+  // Verify proximity filter only retrieves assigned supplier constructions
+  const nearby = databaseRepository.getNearbyConstructions({
+    latitude: 55.7928,
+    longitude: 37.5432,
+    supplier_id: found.supplier_id,
+    month_period: '2026-09'
+  });
+  assert.ok(nearby.length > 0, 'Must find constructions for supplier sup_01');
+  assert.ok(nearby.every(c => c.supplier_id === 'sup_01'), 'Must strictly belong to sup_01');
+  console.log('✓ Multi-role supplier assignment and geo-scoping passed');
+}
+
+console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (12/12) ---');

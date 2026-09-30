@@ -48,18 +48,18 @@ class KamProgramService {
     }
 
     const existing = contractorId
-      ? this.repository.getByContractorId(contractorId)
-      : this.repository.getByContractorName(contractorName);
+      ? databaseRepository.getSupplierById(contractorId)
+      : databaseRepository.getSuppliers().find(s => s.name === contractorName);
 
-    const targetContractorId = contractorId || existing?.contractorId || `cnt_${Date.now()}`;
-    const targetContractorName = contractorName || existing?.contractorName || 'Поставщик OOH';
+    const targetContractorId = contractorId || existing?.id || `sup_${Date.now()}`;
+    const targetContractorName = contractorName || existing?.name || 'Поставщик OOH';
 
     // Format & validate constructions array
-    const cleanConstructions = (constructions || existing?.constructions || []).map(c => ({
+    const cleanConstructions = (constructions || []).map(c => ({
       code: (c.code || '').trim().toUpperCase(),
       type: c.type || 'Билборд 3х6 м',
       city: c.city || 'Москва',
-      address: c.address || 'Адрес не указан',
+      address: c.address || c.address_location || 'Адрес не указан',
       side: c.side || 'Сторона А',
       formatSize: c.formatSize || '3.0 x 6.0 м',
       lightingType: c.lightingType || 'LED прожекторы',
@@ -70,7 +70,7 @@ class KamProgramService {
     }));
 
     // Process master requirement file (ZIP, PDF, or Mockup)
-    let processedMasterFile = existing?.masterRequirementFile || null;
+    let processedMasterFile = null;
     if (masterFile && (masterFile.fileName || masterFile.base64)) {
       const zipAnalysis = MediaAnalysisEngine.analyzeCriteriaZip({
         fileName: masterFile.fileName,
@@ -90,25 +90,28 @@ class KamProgramService {
       };
     }
 
+    if (cleanConstructions.length > 0) {
+      databaseRepository.saveConstructionsBatch({
+        supplier_id: targetContractorId,
+        month_period: '2026-09',
+        constructions: cleanConstructions
+      });
+    }
+
     const payload = {
       contractorId: targetContractorId,
       contractorName: targetContractorName,
       inn: inn || existing?.inn || '',
-      kamName: kamName || existing?.kamName || 'КАМ Поставщика',
-      kamPhone: kamPhone || existing?.kamPhone || '',
-      kamEmail: kamEmail || existing?.kamEmail || '',
+      kamName: kamName || 'КАМ Поставщика',
+      kamPhone: kamPhone || '',
+      kamEmail: kamEmail || '',
       constructions: cleanConstructions,
       masterRequirementFile: processedMasterFile
     };
 
-    const saved = this.repository.saveOrUpdate(payload);
-
-    // Also synchronize global constructions list so dropdowns and audits stay in sync
-    this._syncGlobalConstructions(cleanConstructions);
-
     return {
       success: true,
-      data: saved,
+      data: payload,
       summary: {
         totalConstructions: cleanConstructions.length,
         hasMasterFile: !!processedMasterFile,
@@ -116,23 +119,6 @@ class KamProgramService {
         status: 'ADDRESS_PROGRAM_ACTIVE'
       }
     };
-  }
-
-  _syncGlobalConstructions(newConstructions) {
-    try {
-      const allGlobal = reportRepository.getAllConstructions();
-      newConstructions.forEach(nc => {
-        const idx = allGlobal.findIndex(g => g.code.toUpperCase() === nc.code.toUpperCase());
-        if (idx >= 0) {
-          allGlobal[idx] = { ...allGlobal[idx], ...nc };
-        } else {
-          allGlobal.push(nc);
-        }
-      });
-      reportRepository.saveConstructions(allGlobal);
-    } catch (e) {
-      console.warn('Sync global constructions notice:', e);
-    }
   }
 }
 

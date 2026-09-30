@@ -206,10 +206,14 @@ export class ReportController {
 
   static getUsers(req, res) {
     try {
+      const suppliers = databaseRepository.getSuppliers();
+      const suppliersMap = new Map(suppliers.map(s => [s.id, s.name]));
+
       const users = databaseRepository.getUsers().map(u => ({
         ...u,
         full_name: u.full_name || u.name,
-        is_active: u.is_active ?? u.active ?? false
+        is_active: u.is_active ?? u.active ?? false,
+        supplier_name: suppliersMap.get(u.supplier_id) || 'Не назначен'
       }));
       res.json({ success: true, count: users.length, data: users });
     } catch (err) {

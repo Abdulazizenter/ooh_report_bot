@@ -89,16 +89,18 @@ export class SpartanController {
       if (!user) {
         // Automatic registration for new users
         const shouldBeAdmin = isOwner || !hasActiveAdmin;
-        const newUserId = shouldBeAdmin ? `usr_admin_${Date.now()}` : `usr_pending_${Date.now()}`;
-        const fullName = `${rawUser.first_name || ''} ${rawUser.last_name || ''}`.trim() || rawUser.name || 'Пользователь Telegram';
+        const requestedRole = rawUser.requested_role || rawUser.role || (shouldBeAdmin ? 'admin' : 'pending');
+        const newUserId = shouldBeAdmin ? `usr_admin_${Date.now()}` : `usr_${requestedRole}_${Date.now()}`;
+        const fullName = `${rawUser.first_name || ''} ${rawUser.last_name || ''}`.trim() || rawUser.name || rawUser.full_name || 'Пользователь OOH';
         const newUser = {
           id: newUserId,
           telegram_id: tgId,
           username: rawUser.username || '',
           full_name: fullName,
           name: fullName,
-          role: shouldBeAdmin ? 'admin' : 'pending',
-          supplier_id: shouldBeAdmin ? 'sup_01' : null,
+          role: shouldBeAdmin ? 'admin' : (requestedRole === 'client' ? 'client' : (requestedRole === 'contractor_lead' ? 'contractor_lead' : (requestedRole === 'specialist' ? 'specialist' : 'pending'))),
+          supplier_id: shouldBeAdmin ? 'sup_01' : (rawUser.supplier_id || null),
+          organization: rawUser.organization || (shouldBeAdmin ? 'Единый Центр Мониторинга OOH' : ''),
           is_active: shouldBeAdmin ? true : false,
           created_at: new Date().toISOString()
         };
@@ -183,11 +185,12 @@ export class SpartanController {
 
   static async getNearbyConstructions(req, res) {
     try {
-      const { lat, lon, telegramId } = req.query;
+      const { lat, lon, telegramId, month } = req.query;
       const list = spartanWorkflowService.getNearbyTasks({
         latitude: lat,
         longitude: lon,
-        specialistTelegramId: telegramId
+        specialistTelegramId: telegramId,
+        monthPeriod: month || null
       });
       res.json(list);
     } catch (err) {
