@@ -1333,7 +1333,12 @@ function wireEvents(){
             }
           }
         } catch(err) {
-          toast('Ошибка отправки: ' + err.message);
+          // If offline or network dropped, preserve report in local queue
+          if (!navigator.onLine || err.message.includes('fetch') || err.message.includes('Network')) {
+            saveOfflineReport(payload);
+          } else {
+            toast('Ошибка отправки: ' + err.message);
+          }
         } finally {
           state.submitting = false;
           render();
@@ -1445,6 +1450,45 @@ function compressImage(file, maxDimension = 1920, quality = 0.85) {
     reader.readAsDataURL(file);
   });
 }
+
+// Offline-First resilient storage & sync
+function saveOfflineReport(payload) {
+  try {
+    const queue = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]');
+    queue.push({ id: `off_${Date.now()}`, payload, createdAt: new Date().toISOString() });
+    localStorage.setItem('ooh_offline_queue', JSON.stringify(queue));
+    toast('⚠️ Нет стабильной связи. Снимок сохранен оффлайн и будет синхронизирован при появлении сети.');
+  } catch(e) {
+    console.error('Offline save error', e);
+  }
+}
+
+async function flushOfflineQueue() {
+  const raw = localStorage.getItem('ooh_offline_queue');
+  if (!raw) return;
+  try {
+    const queue = JSON.parse(raw);
+    if (!queue.length) return;
+    toast(`Синхронизация ${queue.length} оффлайн-отчетов...`);
+    const remaining = [];
+    for (const item of queue) {
+      try {
+        await api('/api/v2/specialist/report', { method: 'POST', body: JSON.stringify(item.payload) });
+      } catch (err) {
+        remaining.push(item);
+      }
+    }
+    localStorage.setItem('ooh_offline_queue', JSON.stringify(remaining));
+    if (remaining.length === 0) {
+      toast('✓ Все оффлайн-отчеты успешно отправлены на сервер!');
+      if (typeof load === 'function') await load();
+    }
+  } catch (e) {
+    console.error('Queue flush error', e);
+  }
+}
+
+window.addEventListener('online', flushOfflineQueue);
 
 async function doLogin(telegramUser) {
   state.loading = true;
@@ -1786,8 +1830,14 @@ function openReportModal(report) {
         ${(report.issues && report.issues.length) ? `<div style="margin-top:10px;padding:8px 10px;background:var(--red-glow);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:11px;font-family:var(--font-mono)">Замечания: ${escapeHtml(report.issues.join(', '))}</div>` : ''}
       </div>
 
+      <div style="margin-top:12px">
+        <a href="/api/v2/reports/${encodeURIComponent(report.id)}/act${token}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:10px 14px;background:var(--surface-2);border:1px solid var(--cyan);color:var(--cyan);border-radius:var(--radius-sm);font-size:12px;font-weight:600;transition:all 0.2s ease">
+          <span>📄</span> Открыть официальный Акт фотофиксации (PDF/Печать)
+        </a>
+      </div>
+
       ${isAdmin ? `
-        <div style="display:flex;gap:10px;margin-top:auto">
+        <div style="display:flex;gap:10px;margin-top:12px">
           <button class="primary btn-modal-verify" data-id="${escapeHtml(report.id)}" data-status="APPROVED" style="flex:1;background:var(--green);border-color:rgba(52,211,153,0.3);color:#090d12">✓ Одобрить отчет</button>
           <button class="primary btn-modal-verify" data-id="${escapeHtml(report.id)}" data-status="REJECTED" style="flex:1;background:var(--red);border-color:rgba(248,113,113,0.3);color:#090d12">✕ Отклонить</button>
         </div>

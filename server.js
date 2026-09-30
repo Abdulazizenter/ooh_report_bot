@@ -213,6 +213,7 @@ app.get('/api/v2/specialist/nearby', SpartanController.getNearbyConstructions);
 app.post('/api/v2/specialist/report', SpartanController.submitSpecialistReport);
 app.get('/api/v2/kam/dashboard', SpartanController.getKamDashboard);
 app.post('/api/v2/kam/upload-tz', SpartanController.uploadKamTz);
+app.get('/api/v2/reports/:id/act', SpartanController.generateReportAct);
 
 // Keep API failures machine-readable and prevent internal details leaking to clients.
 app.use((err, req, res, next) => {

@@ -2,6 +2,7 @@ import { spartanWorkflowService } from '../services/spartanWorkflowService.js';
 import { databaseRepository } from '../repositories/databaseRepository.js';
 import { normalizeWorkbook } from '../services/excelImportService.js';
 import { validateTelegramInitData } from '../utils/telegramAuth.js';
+import { PdfReportService } from '../services/pdfReportService.js';
 
 export class SpartanController {
   static async syncWithCloud(req, res) {
@@ -329,6 +330,30 @@ export class SpartanController {
       res.json({ success: true, message: `Успешно загружено ${constructions.length} конструкций` });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async generateReportAct(req, res) {
+    try {
+      await databaseRepository.waitUntilReady();
+      const report = databaseRepository.getReportById(req.params.id);
+      if (!report) return res.status(404).send('<h1>404 — Отчет не найден</h1>');
+
+      const construction = databaseRepository.getConstructionById(report.construction_id);
+      const supplier = databaseRepository.getSupplierById(report.supplier_id);
+      const specialist = databaseRepository.getUserById(report.specialist_id);
+
+      const html = PdfReportService.generateReportHtmlAct({
+        report,
+        construction,
+        supplier,
+        specialist
+      });
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (err) {
+      res.status(500).send('<h1>500 — Ошибка генерации акта: ' + err.message + '</h1>');
     }
   }
 }

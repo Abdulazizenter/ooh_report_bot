@@ -313,5 +313,42 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log('✓ Telegram Web App HMAC-SHA256 verification passed');
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (13/13) ---');
+// 15. Proof of Performance (PoP) Act Generation Test
+{
+  const { PdfReportService } = await import('../src/services/pdfReportService.js');
+
+  const sampleReport = {
+    id: 'rep_test_pop_01',
+    status: 'APPROVED',
+    confidence_score: 0.98,
+    gps_lat: 55.7928,
+    gps_lon: 37.5432,
+    stamp_hash: 'OOH-TEST-STAMP-2026',
+    ai_reasoning: 'Тестовая инспекция подтвердила 100% читаемость постера и корректность монтажа.',
+    captured_at: new Date().toISOString()
+  };
+
+  const sampleConstruction = {
+    code: 'BB-MOW-0104',
+    type: 'Билборд 3х6',
+    side: 'Сторона А',
+    address_location: 'г. Москва, Ленинградский пр-кт, 37 к2'
+  };
+
+  const htmlAct = PdfReportService.generateReportHtmlAct({
+    report: sampleReport,
+    construction: sampleConstruction,
+    supplier: { name: 'ООО «МедиаАутдор Групп»' },
+    specialist: { full_name: 'Абдулазиз Каримов' }
+  });
+
+  assert.ok(htmlAct.includes('АКТ КОНТРОЛЯ РАЗМЕЩЕНИЯ'), 'HTML Act must contain official title');
+  assert.ok(htmlAct.includes('BB-MOW-0104'), 'HTML Act must contain construction code');
+  assert.ok(htmlAct.includes('ВЕРИФИЦИРОВАНО ИИ'), 'HTML Act must reflect APPROVED state badge');
+  assert.ok(htmlAct.includes('Ленинградский пр-кт'), 'HTML Act must contain location address');
+  console.log('✓ Proof of Performance (PoP) Act generation passed');
+}
+
+console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (14/14) ---');
+
 
