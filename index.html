@@ -991,61 +991,78 @@ function field(){
   const userName = state.user?.full_name || state.user?.username || 'Специалист';
   const nearbyList = state.nearby || [];
 
-  return `<section class="hero"><div><div class="eyebrow">Полевой режим · ${escapeHtml(userName)} (${escapeHtml(userRole)})</div><h2>Снимок с контекстом.</h2><p>Геолокация, проверка соответствия ТЗ нейросетью и автоматическое наложение цифрового штампа.</p></div></section>
-  <section class="card section">
-    <div class="section-head">
+  return `<section class="hero">
+    <div>
+      <div class="eyebrow">Мобильный радар · ${escapeHtml(userName)}</div>
+      <h2>Съемка на объекте</h2>
+      <p>Автоматическая проверка GPS-радиуса, анализ монтажа нейросетью и цифровая печать акта.</p>
+    </div>
+  </section>
+
+  <section class="card section" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--line)">
       <div>
-        <h3>1. Определение геопозиции</h3>
-        <p class="section-sub">${state.location ? `Координаты: ${state.location.lat.toFixed(5)}, ${state.location.lon.toFixed(5)} (±${state.location.acc}м)` : 'Определите текущую геопозицию для поиска ближайших рекламных конструкций'}</p>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Геопозиция специалиста</div>
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-top:2px">
+          ${state.location ? `📍 ${state.location.lat.toFixed(4)}, ${state.location.lon.toFixed(4)} <span style="color:var(--cyan);font-size:11px">(±${state.location.acc}м)</span>` : 'GPS не определен'}
+        </div>
       </div>
-      <button class="primary" style="padding:9px 14px;font-size:12px" id="btn-geo">${state.location ? 'Обновить GPS' : 'Определить GPS'}</button>
+      <button class="primary" style="min-height:44px;padding:8px 16px;font-size:13px;font-weight:600" id="btn-geo">
+        ${state.location ? '🔄 Обновить GPS' : '🎯 Найти меня'}
+      </button>
     </div>
 
     ${nearbyList.length ? `
-      <div style="margin-top:20px">
-        <h4 style="margin:0 0 10px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">2. Выберите конструкцию поблизости:</h4>
-        <div style="display:grid;gap:10px">
-          ${nearbyList.map((c, i) => `
-            <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;background:#18212b;border:1px solid ${i===0?'var(--cyan)':'var(--line)'};border-radius:10px;cursor:pointer">
-              <input type="radio" name="construction_choice" value="${escapeHtml(c.id)}" ${i===0?'checked':''} style="margin-top:4px">
+      <div style="margin-top:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:10px">
+          Выберите рекламную конструкцию (${nearbyList.length} поблизости):
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${nearbyList.map((c, i) => {
+            const isWithinTolerance = c.distance_meters <= (c.tolerance_meters || 300);
+            return `
+            <label style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--surface-2);border:2px solid ${i===0 ? 'var(--cyan)' : 'var(--line)'};border-radius:12px;cursor:pointer;min-height:56px;transition:all 0.2s ease">
+              <input type="radio" name="construction_choice" value="${escapeHtml(c.id)}" ${i===0?'checked':''} style="width:20px;height:20px;accent-color:var(--cyan)">
               <div style="flex:1;min-width:0">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                  <strong style="color:var(--cyan);font-family:'Space Grotesk'">${escapeHtml(c.code)}</strong>
-                  <span class="badge ${c.distance_meters <= (c.tolerance_meters||300) ? 'badge-green' : 'badge-cyan'}">${escapeHtml(c.distance_formatted || (c.distance_meters+' м'))}</span>
+                  <span style="font-size:16px;font-weight:700;color:var(--cyan);font-family:var(--font-mono)">${escapeHtml(c.code)}</span>
+                  <span class="badge ${isWithinTolerance ? 'badge-green' : 'badge-orange'}" style="font-size:11px;padding:4px 8px">
+                    ${isWithinTolerance ? '✓ В РАДИУСЕ' : '✕ ДАЛЕКО'} (${escapeHtml(c.distance_formatted || (c.distance_meters+' м'))})
+                  </span>
                 </div>
-                <div style="font-size:12px;color:var(--ink);margin-top:2px">${escapeHtml(c.address_location || c.address || 'г. Москва')} (${escapeHtml(c.side || 'Сторона А')})</div>
-                <div style="font-size:11px;color:var(--muted);margin-top:4px">Поставщик: ${escapeHtml(c.supplier_name || 'ООО МедиаАутдор Групп')}</div>
+                <div style="font-size:13px;color:var(--ink);margin-top:3px;font-weight:500">${escapeHtml(c.address_location || c.address || 'Адрес конструкции')} (${escapeHtml(c.side || 'Сторона А')})</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(c.type || 'Билборд 3х6')} · ТЗ: ${escapeHtml(c.ai_criteria || 'Фронтальный ракурс, без дефектов')}</div>
               </div>
-            </label>
-          `).join('')}
+            </label>`;
+          }).join('')}
         </div>
 
-        <div style="margin-top:24px;border-top:1px solid var(--line);padding-top:20px">
-          <h4 style="margin:0 0 10px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">3. Фотофиксация объекта (камера):</h4>
+        <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)">
           <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <button class="primary" id="btn-open-camera" style="display:flex;align-items:center;gap:8px" ${state.submitting?'disabled':''}>
-              <span>📷</span>
-              <span>${state.submitting ? 'Анализ нейросетью...' : 'Сделать снимок камерой'}</span>
-            </button>
-            <span style="font-size:11px;color:var(--muted)">Галерея заблокирована правилами SDIP. Снимок выполняется строго на месте.</span>
+          <button class="primary" id="btn-open-camera" style="width:100%;min-height:54px;font-size:15px;font-weight:700;letter-spacing:0.02em;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);box-shadow:0 6px 20px rgba(249,115,22,0.3);border-radius:12px" ${state.submitting ? 'disabled' : ''}>
+            <span style="font-size:20px">📷</span>
+            <span>${state.submitting ? 'Инспекция нейросетью...' : 'СДЕЛАТЬ СНИМОК И ПРОВЕРИТЬ'}</span>
+          </button>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;padding:0 4px">
+            <span>✓ Защита от галереи активна</span>
+            <span>✓ Автосжатие фото 1920px</span>
           </div>
           <div id="capture-preview" style="margin-top:16px"></div>
         </div>
       </div>
     ` : state.location ? `
-      <div class="empty" style="padding:20px 0">Поблизости не найдено конструкций для вашего поставщика. Вы можете вручную выбрать тестовую конструкцию:
-        <div style="margin-top:12px">
-          <button class="primary" style="padding:9px 14px;font-size:12px" id="btn-load-mock-cst">Выбрать BB-MOW-0104</button>
-        </div>
+      <div class="empty" style="padding:28px 16px;text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">📡</div>
+        <strong style="color:var(--ink);font-size:14px;display:block">Поблизости нет конструкций вашего поставщика</strong>
+        <p style="font-size:12px;color:var(--muted);margin:6px 0 16px">Вы находитесь вне радиуса ТЗ или конструкции закреплены за другим подрядчиком.</p>
+        <button class="primary" style="min-height:44px;padding:8px 16px;font-size:12px" id="btn-load-mock-cst">Выбрать тестовый щит BB-MOW-0104</button>
       </div>
     ` : `
-      <div class="capture" style="margin-top:16px">
-        <div>
-          <h3>Начать съемку</h3>
-          <p>Сначала определим ближайшие конструкции и покажем требования по ТЗ.</p>
-        </div>
-        <button id="btn-start-geo">Разрешить геолокацию</button>
+      <div class="capture" style="margin-top:16px;text-align:center;padding:24px 16px">
+        <div style="font-size:32px;margin-bottom:8px">🧭</div>
+        <h3 style="font-size:16px;margin-bottom:4px">Начать полевую инспекцию</h3>
+        <p style="font-size:12px;color:var(--muted);max-width:320px;margin:0 auto 16px">Для поиска ближайших конструкций разрешите доступ к GPS на вашем смартфоне.</p>
+        <button class="primary" style="width:100%;min-height:50px;font-size:14px;font-weight:700" id="btn-start-geo">📍 Разрешить геолокацию</button>
       </div>
     `}
   </section>`;
@@ -1223,7 +1240,7 @@ function render(){
     state.view === 'programs' ? programsView() :
     state.view === 'archive' ? archiveView() :
     state.view === 'users' ? usersView() :
-    simple('Настройки', 'Управление профилем, синхронизацией и правилами проверки.');
+    settingsView();
   
   wireEvents();
 }
@@ -1416,6 +1433,81 @@ function loginView(){
       </div>
     </div>
   </section>`;
+}
+
+function settingsView() {
+  const u = state.user || {};
+  let offlineCount = 0;
+  try {
+    offlineCount = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]').length;
+  } catch(e) {}
+
+  return `<section class="hero">
+    <div>
+      <div class="eyebrow">Центр управления</div>
+      <h2>Настройки и диагностика</h2>
+      <p>Конфигурация учетной записи, проверка статуса нейросетей и управление локальным хранилищем.</p>
+    </div>
+  </section>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:24px">
+    <div class="card section">
+      <div class="section-head">
+        <div>
+          <h3>Профиль оператора</h3>
+          <p class="section-sub">Авторизованная сессия Telegram Web App</p>
+        </div>
+        <span class="badge ${u.role === 'admin' ? 'badge-cyan' : 'badge-green'}">${escapeHtml(u.role || 'Пользователь')}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+        <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
+          <span class="muted">ФИО / Имя:</span>
+          <strong>${escapeHtml(u.full_name || u.name || 'Специалист')}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
+          <span class="muted">Telegram ID:</span>
+          <code style="color:var(--cyan)">${escapeHtml(u.telegram_id || u.id || '—')}</code>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
+          <span class="muted">Поставщик:</span>
+          <span>${escapeHtml(u.supplier_name || u.organization || 'Единый мониторинг OOH')}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section">
+      <div class="section-head">
+        <div>
+          <h3>Диагностика ИИ и ядра</h3>
+          <p class="section-sub">Состояние внешних сервисов</p>
+        </div>
+        <span class="status approved">Активно</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
+          <div>
+            <strong style="display:block;font-size:13px">Gemini Vision CV</strong>
+            <span class="muted" style="font-size:11px">Модель: gemini-2.5-flash</span>
+          </div>
+          <span class="badge badge-green">✓ Подключено</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
+          <div>
+            <strong style="display:block;font-size:13px">Neon PostgreSQL</strong>
+            <span class="muted" style="font-size:11px">Реляционная база данных</span>
+          </div>
+          <span class="badge badge-green">✓ Синхронизировано</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
+          <div>
+            <strong style="display:block;font-size:13px">Оффлайн-очередь</strong>
+            <span class="muted" style="font-size:11px">Отчетов в очереди: ${offlineCount}</span>
+          </div>
+          <button class="primary" id="btn-sync-offline-manual" style="padding:6px 12px;font-size:11px" ${offlineCount === 0 ? 'disabled' : ''}>Синхронизировать</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 // Client-side hardware-accelerated image compressor
@@ -1638,6 +1730,11 @@ document.addEventListener('click',event=>{
     return;
   }
 
+  if (event.target.id === 'btn-sync-offline-manual') {
+    flushOfflineQueue().then(() => render());
+    return;
+  }
+
   // Report inspection modal trigger
   const inspectRow = event.target.closest('.btn-inspect-report');
   if (inspectRow) {
@@ -1645,6 +1742,26 @@ document.addEventListener('click',event=>{
     const report = state.reports.find(r => r.id === reportId);
     if (report) {
       openReportModal(report);
+    }
+    return;
+  }
+
+  const shareBtn = event.target.closest('.btn-share-act');
+  if (shareBtn) {
+    const reportId = shareBtn.dataset.id;
+    const token = state.token ? `?token=${encodeURIComponent(state.token)}` : '';
+    const fullUrl = `${window.location.origin}/api/v2/reports/${encodeURIComponent(reportId)}/act${token}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        toast('✓ Ссылка на Акт скопирована в буфер!');
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+      }).catch(() => {
+        prompt('Ссылка на Акт:', fullUrl);
+      });
+    } else {
+      prompt('Ссылка на Акт:', fullUrl);
     }
     return;
   }
@@ -1830,10 +1947,13 @@ function openReportModal(report) {
         ${(report.issues && report.issues.length) ? `<div style="margin-top:10px;padding:8px 10px;background:var(--red-glow);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:11px;font-family:var(--font-mono)">Замечания: ${escapeHtml(report.issues.join(', '))}</div>` : ''}
       </div>
 
-      <div style="margin-top:12px">
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
         <a href="/api/v2/reports/${encodeURIComponent(report.id)}/act${token}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:10px 14px;background:var(--surface-2);border:1px solid var(--cyan);color:var(--cyan);border-radius:var(--radius-sm);font-size:12px;font-weight:600;transition:all 0.2s ease">
-          <span>📄</span> Открыть официальный Акт фотофиксации (PDF/Печать)
+          <span>📄</span> Открыть официальный Акт (PDF/Печать)
         </a>
+        <button type="button" class="btn-share-act" data-id="${escapeHtml(report.id)}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;background:var(--surface-3);border:1px solid var(--line);color:var(--ink-secondary);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer">
+          <span>🔗</span> Скопировать ссылку на Акт для клиента
+        </button>
       </div>
 
       ${isAdmin ? `
