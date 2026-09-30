@@ -1004,11 +1004,11 @@ function field(){
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Геопозиция специалиста</div>
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-top:2px">
-          ${state.location ? `📍 ${state.location.lat.toFixed(4)}, ${state.location.lon.toFixed(4)} <span style="color:var(--cyan);font-size:11px">(±${state.location.acc}м)</span>` : 'GPS не определен'}
+          ${state.location ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>  ${state.location.lat.toFixed(4)}, ${state.location.lon.toFixed(4)} <span style="color:var(--cyan);font-size:11px">(±${state.location.acc}м)</span>` : 'GPS не определен'}
         </div>
       </div>
       <button class="primary" style="min-height:44px;padding:8px 16px;font-size:13px;font-weight:600" id="btn-geo">
-        ${state.location ? '🔄 Обновить GPS' : '🎯 Найти меня'}
+        ${state.location ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Обновить GPS' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Найти меня'}
       </button>
     </div>
 
@@ -1040,7 +1040,7 @@ function field(){
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)">
           <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
           <button class="primary" id="btn-open-camera" style="width:100%;min-height:54px;font-size:15px;font-weight:700;letter-spacing:0.02em;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);box-shadow:0 6px 20px rgba(249,115,22,0.3);border-radius:12px" ${state.submitting ? 'disabled' : ''}>
-            <span style="font-size:20px">📷</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
             <span>${state.submitting ? 'Инспекция нейросетью...' : 'СДЕЛАТЬ СНИМОК И ПРОВЕРИТЬ'}</span>
           </button>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;padding:0 4px">
@@ -1052,17 +1052,17 @@ function field(){
       </div>
     ` : state.location ? `
       <div class="empty" style="padding:28px 16px;text-align:center">
-        <div style="font-size:28px;margin-bottom:8px">📡</div>
+        <div style="margin-bottom:8px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.93 19.07A10 10 0 0 1 19.07 4.93"/><path d="M7.76 16.24a6 6 0 0 1 8.48-8.48"/><circle cx="12" cy="12" r="2"/><path d="m12 14 7 7"/></svg></div>
         <strong style="color:var(--ink);font-size:14px;display:block">Поблизости нет конструкций вашего поставщика</strong>
         <p style="font-size:12px;color:var(--muted);margin:6px 0 16px">Вы находитесь вне радиуса ТЗ или конструкции закреплены за другим подрядчиком.</p>
         <button class="primary" style="min-height:44px;padding:8px 16px;font-size:12px" id="btn-load-mock-cst">Выбрать тестовый щит BB-MOW-0104</button>
       </div>
     ` : `
       <div class="capture" style="margin-top:16px;text-align:center;padding:24px 16px">
-        <div style="font-size:32px;margin-bottom:8px">🧭</div>
+        <div style="margin-bottom:8px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>
         <h3 style="font-size:16px;margin-bottom:4px">Начать полевую инспекцию</h3>
         <p style="font-size:12px;color:var(--muted);max-width:320px;margin:0 auto 16px">Для поиска ближайших конструкций разрешите доступ к GPS на вашем смартфоне.</p>
-        <button class="primary" style="width:100%;min-height:50px;font-size:14px;font-weight:700" id="btn-start-geo">📍 Разрешить геолокацию</button>
+        <button class="primary" style="width:100%;min-height:50px;font-size:14px;font-weight:700" id="btn-start-geo">Разрешить геолокацию</button>
       </div>
     `}
   </section>`;
@@ -1071,7 +1071,7 @@ function field(){
 function archiveView(){
   const token = state.token ? `?token=${encodeURIComponent(state.token)}` : '';
   if(!state.archive||!state.archive.length)return `<section class="hero"><div><div class="eyebrow">Архивное хранилище</div><h2>Папки поставщиков</h2><p>Структурированное помесячное хранение чистовых фотоотчетов.</p></div></section><section class="card section empty">Архив пуст или формируется.</section>`;
-  return `<section class="hero"><div><div class="eyebrow">Архивное хранилище</div><h2>Папки поставщиков</h2><p>Структурированное помесячное хранение чистовых фотоотчетов со штампами.</p></div></section><div class="grid-cards">${state.archive.map(org=>`<div class="folder-card"><div class="folder-head"><div><div class="folder-title">📁 ${escapeHtml(org.contractorFolder)}</div><div class="folder-meta">Месяцев в архиве: ${org.months.length}</div></div><span class="badge badge-cyan">Поставщик</span></div>${org.months.map(m=>`<div style="margin-top:8px"><strong style="font-size:12px;color:var(--muted)">📅 ${escapeHtml(m.month)} (${m.filesCount} фото)</strong><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${m.files.map(f=>`<a class="file-pill" href="${escapeHtml(f.url)}${token}" target="_blank" rel="noopener"><span>📷</span><span>${escapeHtml(f.fileName)}</span><span class="muted">${(f.sizeBytes/1024).toFixed(0)}KB</span></a>`).join('')}</div></div>`).join('')}</div>`).join('')}</div>`;
+  return `<section class="hero"><div><div class="eyebrow">Архивное хранилище</div><h2>Папки поставщиков</h2><p>Структурированное помесячное хранение чистовых фотоотчетов со штампами.</p></div></section><div class="grid-cards">${state.archive.map(org=>`<div class="folder-card"><div class="folder-head"><div><div class="folder-title">${escapeHtml(org.contractorFolder)}</div><div class="folder-meta">Месяцев в архиве: ${org.months.length}</div></div><span class="badge badge-cyan">Поставщик</span></div>${org.months.map(m=>`<div style="margin-top:8px"><strong style="font-size:12px;color:var(--muted)">${escapeHtml(m.month)} (${m.filesCount} фото)</strong><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${m.files.map(f=>`<a class="file-pill" href="${escapeHtml(f.url)}${token}" target="_blank" rel="noopener"><span>${escapeHtml(f.fileName)}</span><span class="muted">${(f.sizeBytes/1024).toFixed(0)}KB</span></a>`).join('')}</div></div>`).join('')}</div>`).join('')}</div>`;
 }
 
 function programsView(){
@@ -1091,7 +1091,7 @@ function programsView(){
       </div>
       
       <div class="dropzone" id="excel-dropzone">
-        <span class="dropzone-icon">📊</span>
+        <span class="dropzone-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
         <strong style="display:block;font-size:14px;color:var(--ink)">Нажмите для выбора или перетащите .xlsx файл</strong>
         <span style="display:block;font-size:11px;color:var(--muted);margin-top:6px">Колонки: Код, Адрес, Сторона, Широта, Долгота, Срок (YYYY-MM), Критерии</span>
         <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" style="display:none" />
@@ -1211,7 +1211,7 @@ function render(){
     <button type="button" class="${state.view==='archive'?'active':''}" data-view="archive"><span class="nav-icon">□</span>Архив</button>
     ` : ''}
     <p class="nav-title" style="margin-top:22px">Система</p>
-    ${role==='admin' ? `<button type="button" class="${state.view==='users'?'active':''}" data-view="users"><span class="nav-icon">👥</span>Пользователи</button>` : ''}
+    ${role==='admin' ? `<button type="button" class="${state.view==='users'?'active':''}" data-view="users"><span class="nav-icon">⚲</span>Пользователи</button>` : ''}
     <button type="button" class="${state.view==='settings'?'active':''}" data-view="settings"><span class="nav-icon">⚙</span>Настройки</button>
   `;
   
@@ -1377,7 +1377,7 @@ function pendingView(){
 
 function usersView(){
   const users = state.users || [];
-  return `<section class="hero"><div><div class="eyebrow">Управление доступом</div><h2>Пользователи</h2><p>Реальные пользователи системы из базы данных Neon PostgreSQL с привязкой к поставщикам.</p></div><button class="primary" id="btn-refresh-users" style="padding:10px 16px;font-size:12px">🔄 Обновить список</button></section>
+  return `<section class="hero"><div><div class="eyebrow">Управление доступом</div><h2>Пользователи</h2><p>Реальные пользователи системы из базы данных Neon PostgreSQL с привязкой к поставщикам.</p></div><button class="primary" id="btn-refresh-users" style="padding:10px 16px;font-size:12px">Обновить список</button></section>
   <section class="card section"><div class="table-wrap"><table class="table"><thead><tr><th>Пользователь / Ник</th><th>Telegram ID</th><th>Роль</th><th>Поставщик / Организация</th><th>Статус</th><th>Действия</th></tr></thead><tbody>
   ${users.map(u => `<tr>
   <td><strong>${escapeHtml(u.full_name || u.name || 'Без имени')}</strong><br><span class="muted">${escapeHtml(u.username ? '@' + u.username : 'без ника')}</span></td>
@@ -1413,19 +1413,19 @@ function loginView(){
           <div style="font-family:var(--font-mono);font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Быстрый доступ под 4 ролями (Демо-сессия):</div>
           <div class="role-grid">
             <button class="btn-quick-role" data-role="admin" data-tg="85993905" data-name="Абдулазиз Мамашарипов">
-              <span class="role-title">👑 Администратор</span>
+              <span class="role-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg> Администратор</span>
               <span class="role-desc">Полный аудит сети, согласование и доступы</span>
             </button>
             <button class="btn-quick-role" data-role="contractor_lead" data-tg="10000001" data-name="Михаил Воронов (КАМ)">
-              <span class="role-title">🏢 КАМ Поставщика</span>
+              <span class="role-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/></svg> КАМ Поставщика</span>
               <span class="role-desc">Импорт адресных программ, мониторинг ТЗ</span>
             </button>
             <button class="btn-quick-role" data-role="client" data-tg="20000002" data-name="Анна Климова (Сбер)">
-              <span class="role-title">💼 Заказчик / Бренд</span>
+              <span class="role-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Заказчик / Бренд</span>
               <span class="role-desc">Витрина проверенных фотоотчетов и реестры</span>
             </button>
             <button class="btn-quick-role" data-role="specialist" data-tg="30000003" data-name="Иван Монтажник">
-              <span class="role-title">📱 Полевой инспектор</span>
+              <span class="role-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg> Полевой инспектор</span>
               <span class="role-desc">GPS-радиус 300м, камера и Gemini Vision</span>
             </button>
           </div>
@@ -1549,7 +1549,7 @@ function saveOfflineReport(payload) {
     const queue = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]');
     queue.push({ id: `off_${Date.now()}`, payload, createdAt: new Date().toISOString() });
     localStorage.setItem('ooh_offline_queue', JSON.stringify(queue));
-    toast('⚠️ Нет стабильной связи. Снимок сохранен оффлайн и будет синхронизирован при появлении сети.');
+    toast('Внимание: Нет стабильной связи. Снимок сохранен оффлайн и будет синхронизирован при появлении сети.');
   } catch(e) {
     console.error('Offline save error', e);
   }
@@ -1949,10 +1949,10 @@ function openReportModal(report) {
 
       <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
         <a href="/api/v2/reports/${encodeURIComponent(report.id)}/act${token}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:10px 14px;background:var(--surface-2);border:1px solid var(--cyan);color:var(--cyan);border-radius:var(--radius-sm);font-size:12px;font-weight:600;transition:all 0.2s ease">
-          <span>📄</span> Открыть официальный Акт (PDF/Печать)
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></span> Открыть официальный Акт (PDF/Печать)
         </a>
         <button type="button" class="btn-share-act" data-id="${escapeHtml(report.id)}" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;background:var(--surface-3);border:1px solid var(--line);color:var(--ink-secondary);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer">
-          <span>🔗</span> Скопировать ссылку на Акт для клиента
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> Скопировать ссылку на Акт для клиента
         </button>
       </div>
 
