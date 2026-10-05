@@ -77,8 +77,9 @@
     }
 
     button, input, select, textarea { font-family: inherit; }
-    button { cursor: pointer; touch-action: manipulation; }
-    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+    button { cursor: pointer; touch-action: manipulation; min-height: 44px; min-width: 44px; }
+    button:focus-visible, input, select { min-height: 44px; }
+    input:focus-visible, select:focus-visible, a:focus-visible {
       outline: 2px solid var(--line-focus);
       outline-offset: 2px;
     }
@@ -118,7 +119,7 @@
     .shell {
       max-width: 1540px;
       margin: 0 auto;
-      padding: 16px clamp(16px, 2.5vw, 40px) 48px;
+      padding: calc(16px + env(safe-area-inset-top)) clamp(16px, 2.5vw, 40px) calc(48px + env(safe-area-inset-bottom));
     }
 
     /* Topbar */
@@ -711,6 +712,11 @@
       letter-spacing: -0.02em;
     }
     .modal-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      min-width: 44px;
       background: transparent;
       border: 0;
       color: var(--muted);
@@ -892,7 +898,7 @@
   <div class="modal-dialog">
     <div class="modal-header">
       <h3 id="modal-report-title">Карточка отчета</h3>
-      <button class="modal-close" id="btn-close-report-modal" aria-label="Закрыть">✕</button>
+      <button class="modal-close" id="btn-close-report-modal" aria-label="Закрыть"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; "><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
     </div>
     <div class="modal-body" id="modal-report-content">
       <!-- Injected dynamically -->
@@ -905,7 +911,7 @@
   <div class="modal-dialog" style="max-width:480px">
     <div class="modal-header">
       <h3 id="modal-user-title">Назначение роли и компании</h3>
-      <button class="modal-close" id="btn-close-user-modal" aria-label="Закрыть">✕</button>
+      <button class="modal-close" id="btn-close-user-modal" aria-label="Закрыть"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; "><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
     </div>
     <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
       <input type="hidden" id="assign-user-id" />
@@ -983,7 +989,13 @@ function overview(){
 }
 
 function registry(){
-  return `<section class="hero"><div><div class="eyebrow">Операционный список</div><h2>Реестр отчетов</h2><p>Быстрый доступ к каждому полевому подтверждению и его статусу.</p></div><button class="primary" data-action="export">Экспорт CSV</button></section><section class="card section"><div class="filters"><label class="sr-only" for="search">Поиск отчета</label><input id="search" placeholder="Код, адрес или поставщик" value="${escapeHtml(state.query)}"><select id="status" aria-label="Фильтр по статусу"><option value="">Все статусы</option><option value="APPROVED" ${state.status==='APPROVED'?'selected':''}>Одобрен</option><option value="PENDING" ${state.status==='PENDING'?'selected':''}>На проверке</option><option value="REJECTED" ${state.status==='REJECTED'?'selected':''}>Отклонен</option></select></div><div id="registry-table">${reportRows(filtered())}</div></section>`;
+  return `<section class="hero"><div><div class="eyebrow">Операционный список</div><h2>Реестр отчетов</h2><p>Быстрый доступ к каждому полевому подтверждению и его статусу.</p></div><div style="display:flex;gap:12px"><button class="primary" id="btn-toggle-bulk" style="background:var(--surface-3)">${state.bulkMode ? 'Отменить выделение' : 'Массовые действия'}</button><button class="primary" data-action="export">Экспорт CSV</button></div></section>
+  ${state.bulkMode ? `<div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--line);padding:16px;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:16px;z-index:90;">
+    <span style="font-weight:600;font-family:var(--font-mono)"><span id="bulk-count">0</span> выделено</span>
+    <button class="primary" id="btn-bulk-approve" style="background:var(--green);color:#090d12">Одобрить</button>
+    <button class="primary" id="btn-bulk-reject" style="background:var(--red);color:#090d12">Отклонить</button>
+  </div>` : ''}
+  <section class="card section"><div class="filters"><label class="sr-only" for="search">Поиск отчета</label><input id="search" placeholder="Код, адрес или поставщик" value="${escapeHtml(state.query)}"><select id="status" aria-label="Фильтр по статусу"><option value="">Все статусы</option><option value="APPROVED" ${state.status==='APPROVED'?'selected':''}>Одобрен</option><option value="PENDING" ${state.status==='PENDING'?'selected':''}>На проверке</option><option value="REJECTED" ${state.status==='REJECTED'?'selected':''}>Отклонен</option></select></div><div id="registry-table">${reportRows(filtered())}</div></section>`;
 }
 
 function field(){
@@ -1027,7 +1039,7 @@ function field(){
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
                   <span style="font-size:16px;font-weight:700;color:var(--cyan);font-family:var(--font-mono)">${escapeHtml(c.code)}</span>
                   <span class="badge ${isWithinTolerance ? 'badge-green' : 'badge-orange'}" style="font-size:11px;padding:4px 8px">
-                    ${isWithinTolerance ? '✓ В РАДИУСЕ' : '✕ ДАЛЕКО'} (${escapeHtml(c.distance_formatted || (c.distance_meters+' м'))})
+                    ${isWithinTolerance ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>В РАДИУСЕ' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>ДАЛЕКО'} (${escapeHtml(c.distance_formatted || (c.distance_meters+' м'))})
                   </span>
                 </div>
                 <div style="font-size:13px;color:var(--ink);margin-top:3px;font-weight:500">${escapeHtml(c.address_location || c.address || 'Адрес конструкции')} (${escapeHtml(c.side || 'Сторона А')})</div>
@@ -1044,8 +1056,8 @@ function field(){
             <span>${state.submitting ? 'Инспекция нейросетью...' : 'СДЕЛАТЬ СНИМОК И ПРОВЕРИТЬ'}</span>
           </button>
           <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;padding:0 4px">
-            <span>✓ Защита от галереи активна</span>
-            <span>✓ Автосжатие фото 1920px</span>
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Защита от галереи активна</span>
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Автосжатие фото 1920px</span>
           </div>
           <div id="capture-preview" style="margin-top:16px"></div>
         </div>
@@ -1117,7 +1129,7 @@ function programsView(){
               <strong style="color:var(--cyan)">Предпросмотр: ${escapeHtml(preview.sheetNames?.[0] || 'Лист 1')}</strong>
               <div style="font-size:11px;color:var(--muted);margin-top:2px">Валидных строк: <b>${preview.summary?.valid || 0}</b> | Ошибок: <b style="color:var(--red)">${preview.summary?.errors || 0}</b></div>
             </div>
-            <button class="primary" id="btn-commit-import" style="padding:8px 16px;font-size:12px" ${preview.summary?.valid ? '' : 'disabled'}>✓ Зафиксировать в базе</button>
+            <button class="primary" id="btn-commit-import" style="padding:8px 16px;font-size:12px" ${preview.summary?.valid ? '' : 'disabled'}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Зафиксировать в базе</button>
           </div>
           <div class="table-wrap" style="max-height:220px;overflow-y:auto">
             <table class="table">
@@ -1187,7 +1199,7 @@ function clientView(){
     <div class="card stat"><div class="stat-label">Принято конструкций</div><div class="stat-value">${approvedReports.length}</div><div class="stat-foot"><strong>100% со штампом</strong></div></div>
     <div class="card stat"><div class="stat-label">Кампании в эфире</div><div class="stat-value">Сентябрь 2026</div><div class="stat-foot">Активный период</div></div>
     <div class="card stat"><div class="stat-label">Качество постеров</div><div class="stat-value">A+</div><div class="stat-foot"><strong>Gemini Vision проверен</strong></div></div>
-    <div class="card stat"><div class="stat-label">Статус проверки</div><div class="stat-value" style="color:var(--green)">✓ Сдано</div><div class="stat-foot">Без замечаний</div></div>
+    <div class="card stat"><div class="stat-label">Статус проверки</div><div class="stat-value" style="color:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Сдано</div><div class="stat-foot">Без замечаний</div></div>
   </section>
   <section class="card section">
     <div class="section-head">
@@ -1278,6 +1290,70 @@ async function setGeoPosition(lat, lon, acc){
 }
 
 function wireEvents(){
+
+  const btnToggleBulk = $('#btn-toggle-bulk');
+  if(btnToggleBulk) btnToggleBulk.onclick = () => {
+    state.bulkMode = !state.bulkMode;
+    render();
+  };
+
+  const selectAll = $('#bulk-select-all');
+  if(selectAll) selectAll.onchange = (e) => {
+    const cbs = document.querySelectorAll('.bulk-cb');
+    cbs.forEach(cb => cb.checked = e.target.checked);
+    updateBulkCount();
+  };
+
+  const bulkCbs = document.querySelectorAll('.bulk-cb');
+  bulkCbs.forEach(cb => cb.onchange = updateBulkCount);
+  
+  const bulkRows = document.querySelectorAll('.bulk-row');
+  bulkRows.forEach(row => {
+    row.onclick = (e) => {
+      if(e.target.tagName !== 'INPUT') {
+        const cb = row.querySelector('.bulk-cb');
+        if(cb) { cb.checked = !cb.checked; updateBulkCount(); }
+      }
+    };
+  });
+
+  function updateBulkCount() {
+    const cbs = document.querySelectorAll('.bulk-cb:checked');
+    const el = $('#bulk-count');
+    if(el) el.textContent = cbs.length;
+  }
+
+  async function handleBulkAction(status) {
+    const cbs = document.querySelectorAll('.bulk-cb:checked');
+    const ids = Array.from(cbs).map(c => c.value);
+    if(!ids.length) return toast('Выберите хотя бы один отчет');
+    const comment = status === 'REJECTED' ? prompt('Укажите причину массового отклонения:') : '';
+    if(status === 'REJECTED' && comment === null) return;
+    
+    try {
+      const res = await api('/api/reports/bulk-verify', {
+        method: 'POST',
+        body: JSON.stringify({ reportIds: ids, status, comment })
+      });
+      if(res.success) {
+        toast(`Успешно ${status === 'APPROVED' ? 'одобрено' : 'отклонено'} отчетов: ${res.count}`);
+        state.bulkMode = false;
+        await load();
+        render();
+      } else {
+        toast('Ошибка: ' + res.error);
+      }
+    } catch(err) {
+      toast('Ошибка соединения');
+    }
+  }
+
+  const btnBulkApprove = $('#btn-bulk-approve');
+  if(btnBulkApprove) btnBulkApprove.onclick = () => handleBulkAction('APPROVED');
+
+  const btnBulkReject = $('#btn-bulk-reject');
+  if(btnBulkReject) btnBulkReject.onclick = () => handleBulkAction('REJECTED');
+
   const btnStartGeo = $('#btn-start-geo');
   if(btnStartGeo) btnStartGeo.onclick = requestGeo;
   const btnGeo = $('#btn-geo');
@@ -1489,14 +1565,14 @@ function settingsView() {
             <strong style="display:block;font-size:13px">Gemini Vision CV</strong>
             <span class="muted" style="font-size:11px">Модель: gemini-2.5-flash</span>
           </div>
-          <span class="badge badge-green">✓ Подключено</span>
+          <span class="badge badge-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Подключено</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
           <div>
             <strong style="display:block;font-size:13px">Neon PostgreSQL</strong>
             <span class="muted" style="font-size:11px">Реляционная база данных</span>
           </div>
-          <span class="badge badge-green">✓ Синхронизировано</span>
+          <span class="badge badge-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Синхронизировано</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
           <div>
@@ -1958,8 +2034,8 @@ function openReportModal(report) {
 
       ${isAdmin ? `
         <div style="display:flex;gap:10px;margin-top:12px">
-          <button class="primary btn-modal-verify" data-id="${escapeHtml(report.id)}" data-status="APPROVED" style="flex:1;background:var(--green);border-color:rgba(52,211,153,0.3);color:#090d12">✓ Одобрить отчет</button>
-          <button class="primary btn-modal-verify" data-id="${escapeHtml(report.id)}" data-status="REJECTED" style="flex:1;background:var(--red);border-color:rgba(248,113,113,0.3);color:#090d12">✕ Отклонить</button>
+          <button class="primary btn-modal-verify" data-id="${escapeHtml(report.id)}" data-status="APPROVED" style="flex:1;background:var(--green);border-color:rgba(52,211,153,0.3);color:#090d12"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Одобрить отчет</button>
+          <button class="primary btn-modal-verify" data-id="${escapeHtml(report.id)}" data-status="REJECTED" style="flex:1;background:var(--red);border-color:rgba(248,113,113,0.3);color:#090d12"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:text-bottom; margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Отклонить</button>
         </div>
       ` : ''}
     </div>

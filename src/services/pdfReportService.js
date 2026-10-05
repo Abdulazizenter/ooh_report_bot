@@ -1,3 +1,4 @@
+import PDFDocument from 'pdfkit';
 /**
  * PDF / HTML Proof of Performance (PoP) Act Generator
  * Generates an official, beautifully styled certificate/act for advertising agencies & clients.
@@ -243,5 +244,38 @@ export class PdfReportService {
   </div>
 </body>
 </html>`;
+  }
+
+  static generateDossierPdf(reports, constructionsMap, supplier) {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+
+      doc.fontSize(20).text('OOH SDIP - Client Dossier', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(14).text(`Supplier: ${supplier?.name || 'All'}`);
+      doc.text(`Total Reports: ${reports.length}`);
+      doc.text(`Date: ${new Date().toLocaleString('ru-RU')}`);
+      doc.moveDown(2);
+
+      reports.forEach((r, idx) => {
+        if (idx > 0) doc.addPage();
+        const c = constructionsMap.get(r.construction_id) || {};
+        doc.fontSize(16).text(`Code: ${c.code || r.construction_code || 'N/A'} (${c.side || 'A'})`);
+        doc.fontSize(12).text(`Address: ${c.address_location || 'N/A'}`);
+        doc.text(`Status: ${r.status || 'PENDING'}`);
+        doc.text(`GPS: ${r.gps_lat || 'N/A'}, ${r.gps_lon || 'N/A'}`);
+        doc.text(`Time: ${r.captured_at}`);
+        doc.moveDown();
+        doc.fontSize(10).text(`SHA256 Stamp Hash: ${r.stamp_hash || 'N/A'}`);
+        doc.moveDown();
+        doc.text(`Photo Link: ${r.photo_url || r.raw_photo_url || 'N/A'}`, { link: r.photo_url || '', underline: true, color: 'blue' });
+      });
+
+      doc.end();
+    });
   }
 }

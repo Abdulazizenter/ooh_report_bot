@@ -152,6 +152,7 @@ app.use('/storage', apiAuth, (req, res) => {
 
 // REST API Endpoints for OOH Reports and Users
 app.get('/api/reports', ReportController.getReports);
+app.post('/api/reports/bulk-verify', ReportController.bulkVerify);
 app.get('/api/reports/:id', ReportController.getReportById);
 app.post('/api/reports', ReportController.createReport);
 app.put('/api/reports/:id', ReportController.updateReport);
@@ -166,6 +167,7 @@ app.get('/api/contractors', ReportController.getContractors);
 app.get('/api/constructions', ReportController.getConstructions);
 app.get('/api/stats', ReportController.getStats);
 app.get('/api/export/csv', ReportController.exportCSV);
+app.get('/api/export/pdf', ReportController.exportPdfDossier);
 
 // New KAM Program & Criteria Endpoints
 app.get('/api/kam/programs', KamProgramController.getPrograms);

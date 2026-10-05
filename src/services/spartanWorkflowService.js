@@ -85,6 +85,18 @@ export class SpartanWorkflowService {
     });
 
     if (!realTimeCheck.isRealTime) {
+      // Trigger Push Notification for Fraud Attempt
+      try {
+        const kamChatId = process.env.KAM_CHAT_ID;
+        if (kamChatId) {
+           const NotificationEngine = (await import('../engines/notificationEngine.js')).NotificationEngine;
+           await NotificationEngine.notifyFraudAttempt(kamChatId, {
+             address: construction.address_location || construction.code,
+             reason: 'Загрузка фото из галереи устройства (нарушение TTL 180с)'
+           });
+        }
+      } catch (err) {}
+
       return {
         status: 'REJECTED',
         confidence_score: 1.0,
@@ -120,6 +132,20 @@ export class SpartanWorkflowService {
       const issues = [...cvInspection.detected_issues];
       if (!isGeoValid) {
         issues.push(`Отклонение GPS координат: ${distMeters}м от объекта (допустимо до ${tolerance}м).`);
+        // Trigger Push Notification for Fraud Attempt
+        try {
+          // Assuming KamChatId is configurable or fixed; we can pass process.env.KAM_CHAT_ID
+          const kamChatId = process.env.KAM_CHAT_ID;
+          if (kamChatId) {
+             const NotificationEngine = (await import('../engines/notificationEngine.js')).NotificationEngine;
+             await NotificationEngine.notifyFraudAttempt(kamChatId, {
+               address: construction.address_location || construction.code,
+               reason: `Специалист находится в ${distMeters}м от конструкции (лимит ${tolerance}м)`
+             });
+          }
+        } catch (err) {
+          console.error('Failed to dispatch fraud notification', err);
+        }
       }
 
       const reasoning = cvInspection.status === 'REJECTED'

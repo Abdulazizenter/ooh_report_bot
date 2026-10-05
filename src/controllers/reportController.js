@@ -1,5 +1,6 @@
 import { reportService } from '../services/reportService.js';
 import { databaseRepository } from '../repositories/databaseRepository.js';
+import { PdfReportService } from '../services/pdfReportService.js';
 
 export class ReportController {
   static getReports(req, res) {
@@ -108,6 +109,23 @@ export class ReportController {
     }
   }
 
+  static async bulkVerify(req, res) {
+    try {
+      const { reportIds, status, comment } = req.body;
+      if (!Array.isArray(reportIds) || reportIds.length === 0) {
+        return res.status(400).json({ success: false, error: 'Массив reportIds пуст или не передан' });
+      }
+      if (!status || !['APPROVED', 'REJECTED'].includes(status.toUpperCase())) {
+        return res.status(400).json({ success: false, error: 'Некорректный статус. Ожидается APPROVED или REJECTED' });
+      }
+      
+      const count = await databaseRepository.updateReportsBulk(reportIds, status.toUpperCase(), comment);
+      res.json({ success: true, message: `Успешно обновлено отчетов: ${count}`, count });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   static deleteReport(req, res) {
     try {
       const { id } = req.params;
@@ -163,6 +181,26 @@ export class ReportController {
           totalConstructions
         }
       });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async exportPdfDossier(req, res) {
+    try {
+      const db = databaseRepository._readDb();
+      const supplierId = req.query.supplierId;
+      let reports = db.reports || [];
+      if (supplierId) reports = reports.filter(r => r.supplier_id === supplierId);
+      
+      const constructionsMap = new Map((db.constructions || []).map(c => [c.id, c]));
+      const supplier = (db.suppliers || []).find(s => s.id === supplierId) || { name: 'Все поставщики' };
+
+      const pdfBuffer = await PdfReportService.generateDossierPdf(reports, constructionsMap, supplier);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="ooh_reports_dossier.pdf"');
+      res.status(200).send(pdfBuffer);
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
