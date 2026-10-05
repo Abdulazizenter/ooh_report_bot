@@ -166,8 +166,8 @@ app.put('/api/users/:id', ReportController.updateUser);
 app.get('/api/contractors', ReportController.getContractors);
 app.get('/api/constructions', ReportController.getConstructions);
 app.get('/api/stats', ReportController.getStats);
-app.get('/api/export/csv', ReportController.exportCSV);
-app.get('/api/export/pdf', ReportController.exportPdfDossier);
+app.get('/api/export/csv', apiAuth, ReportController.exportCSV);
+app.get('/api/export/pdf', apiAuth, ReportController.exportPdfDossier);
 
 // New KAM Program & Criteria Endpoints
 app.get('/api/kam/programs', KamProgramController.getPrograms);

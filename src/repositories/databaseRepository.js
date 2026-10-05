@@ -137,7 +137,41 @@ export class DatabaseRepository {
   saveConstructionsBatch({ supplier_id, month_period, constructions }) { let countAdded = 0; let countUpdated = 0; for (const item of constructions) { const existing = this.cache.constructions.find((c) => c.supplier_id === supplier_id && c.code.toUpperCase() === String(item.code).toUpperCase() && c.side === item.side && c.month_period === month_period); const record = { id: existing?.id || item.id || `cst_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, supplier_id, code: String(item.code).toUpperCase(), type: item.type || 'Билборд 3х6 м', side: item.side || 'Сторона А', address_location: item.address || item.address_location || 'г. Москва', latitude: Number(item.latitude) || null, longitude: Number(item.longitude) || null, tolerance_meters: Number(item.tolerance_meters) || 300, ai_criteria: item.ai_criteria || '', reference_photo_url: item.reference_photo_url || null, month_period }; if (existing) { Object.assign(existing, record); countUpdated++; } else { this.cache.constructions.push(record); countAdded++; } void this._query('INSERT INTO constructions (id,code,name,supplier_id,type,side,address_location,latitude,longitude,tolerance_meters,ai_criteria,reference_photo_url,month_period,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now()) ON CONFLICT (id) DO UPDATE SET code=EXCLUDED.code,name=EXCLUDED.name,supplier_id=EXCLUDED.supplier_id,type=EXCLUDED.type,side=EXCLUDED.side,address_location=EXCLUDED.address_location,latitude=EXCLUDED.latitude,longitude=EXCLUDED.longitude,tolerance_meters=EXCLUDED.tolerance_meters,ai_criteria=EXCLUDED.ai_criteria,reference_photo_url=EXCLUDED.reference_photo_url,month_period=EXCLUDED.month_period,updated_at=now()', [record.id,record.code,record.type,record.supplier_id,record.type,record.side,record.address_location,record.latitude,record.longitude,record.tolerance_meters,record.ai_criteria,record.reference_photo_url,record.month_period]); } return { countAdded, countUpdated, total: this.cache.constructions.length }; }
   getReports(filters = {}) { return this.cache.reports.filter((r) => (!filters.supplier_id || r.supplier_id === filters.supplier_id) && (!filters.construction_id || r.construction_id === filters.construction_id) && (!filters.specialist_id || r.specialist_id === filters.specialist_id) && (!filters.status || r.status === filters.status)); }
   saveReport(data) { const duplicate = this.cache.reports.find((r) => r.id === data.id || (data.stamp_hash && r.stamp_hash === data.stamp_hash)); if (duplicate) { Object.assign(duplicate, data); void this._query('UPDATE reports SET status = $1, payload = $2 WHERE id = $3', [duplicate.status, duplicate, duplicate.id]); return duplicate; } const report = { id: data.id || `rep_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, ...data, created_at: data.created_at || now(), captured_at: data.captured_at || now() }; this.cache.reports.unshift(report); void this._persistReport(report); return report; }
-  async updateReportsBulk(reportIds, status, comment) { let count = 0; for (const id of reportIds) { const r = this.cache.reports.find(x => x.id === id); if (r) { r.status = status; if (comment) r.ai_reasoning = (r.ai_reasoning ? r.ai_reasoning + '\n' : '') + `[Bulk KAM]: ${comment}`; void this._query('UPDATE reports SET status = $1, payload = $2 WHERE id = $3', [status, r, id]); count++; } } return count; }
+  async updateReportsBulk(reportIds, status, comment) {
+    if (!reportIds || reportIds.length === 0) return 0;
+    let count = 0;
+    
+    // Process purely in-memory first, but don't commit to DB until we map it all
+    const updates = [];
+    for (const id of reportIds) {
+      const r = this.cache.reports.find(x => x.id === id);
+      if (r) {
+        r.status = status;
+        if (comment) r.ai_reasoning = (r.ai_reasoning ? r.ai_reasoning + '\\n' : '') + `[Bulk KAM]: ${comment}`;
+        updates.push({ id, status, payload: r });
+      }
+    }
+    
+    if (updates.length === 0) return 0;
+
+    // Use a transaction via the pool
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const update of updates) {
+        await client.query('UPDATE reports SET status = $1, payload = $2 WHERE id = $3', [update.status, update.payload, update.id]);
+        count++;
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      console.error('Bulk update transaction failed:', e);
+      throw e;
+    } finally {
+      client.release();
+    }
+    return count;
+  }
   recordImportRun(run) { const record = { id: run.id || `imp_${Date.now()}`, ...run, created_at: run.created_at || now() }; const index = this.cache.import_runs.findIndex((item) => item.id === record.id); if (index >= 0) this.cache.import_runs[index] = record; else this.cache.import_runs.unshift(record); void this._query('INSERT INTO import_runs (id,supplier_id,month_period,file_name,checksum,status,valid_rows,warning_rows,error_rows,preview_rows,committed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status,committed_at=EXCLUDED.committed_at,preview_rows=EXCLUDED.preview_rows', [record.id,record.supplier_id,record.month_period,record.file_name || '',record.checksum || '',record.status,record.valid_rows || 0,record.warning_rows || 0,record.error_rows || 0,JSON.stringify(record.preview_rows || []),record.committed_at || null]); return record; }
   getImportRuns() { return this.cache.import_runs; }
   getSupplierReport(supplierId, period, status) { const supplier = this.getSupplierById(supplierId); if (!supplier) return null; const constructions = this.getConstructions({ supplier_id: supplierId, month_period: period }); const ids = new Set(constructions.map((c) => c.id)); const reports = this.getReports({ status }).filter((r) => ids.has(r.construction_id)); const approved = new Set(reports.filter((r) => r.status === 'APPROVED').map((r) => r.construction_id)); const rejected = new Set(reports.filter((r) => r.status === 'REJECTED').map((r) => r.construction_id)); return { supplier_id: supplierId, period: period || null, totals: { constructions: constructions.length, reports: reports.length, approved: approved.size, rejected: rejected.size, missing: Math.max(0, constructions.length - approved.size) }, constructions, reports }; }
