@@ -153,8 +153,9 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
     captureSource: 'live_camera_stream'
   });
 
+  const expectedMonth = new Date().toISOString().slice(0, 7);
   assert.strictEqual(result.success, true, 'Report processing must succeed');
-  assert.ok(result.storage.folder.includes('2026-09'), 'Folder must include month 2026-09');
+  assert.ok(result.storage.folder.includes(expectedMonth), `Folder must include month ${expectedMonth}`);
   assert.ok(result.storage.folder.includes('ООО_МедиаАутдор_Групп'), 'Folder must include contractor name');
   console.log('✓ FieldReportService real-time processing and storage passed');
 }

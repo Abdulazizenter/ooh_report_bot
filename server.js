@@ -55,10 +55,11 @@ const readSession = (req) => {
   if (!token && req.headers.cookie) {
     token = req.headers.cookie.split(';').map((value) => value.trim()).find((value) => value.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
   }
-  if (!token || !SESSION_SECRET) return null;
+  const secret = SESSION_SECRET || (process.env.NODE_ENV !== 'production' ? 'local-development-secret' : null);
+  if (!token || !secret) return null;
   const [payload, signature] = token.split('.');
   if (!payload || !signature) return null;
-  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   const actualBytes = Buffer.from(signature);
   const expectedBytes = Buffer.from(expected);
   if (actualBytes.length !== expectedBytes.length || !crypto.timingSafeEqual(actualBytes, expectedBytes)) return null;

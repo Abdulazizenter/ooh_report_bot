@@ -25,11 +25,12 @@ export class MediaAnalysisEngine {
       };
     }
 
-    // 3. Strict Real-Time Window: must be captured within 180 seconds (3 minutes) of submission
+    // 3. Real-Time Window or Verified Offline Queue
     const ageSeconds = Math.round((serverNow - reportedTime) / 1000);
     const MAX_ALLOWED_AGE_SECONDS = 180;
+    const isOfflineQueue = captureSource === 'offline_queue_sync';
 
-    if (ageSeconds > MAX_ALLOWED_AGE_SECONDS) {
+    if (ageSeconds > MAX_ALLOWED_AGE_SECONDS && !isOfflineQueue) {
       return {
         isRealTime: false,
         ageSeconds,
@@ -37,8 +38,8 @@ export class MediaAnalysisEngine {
       };
     }
 
-    // 4. Check Capture Source (must be hardware sensor / camera / live stream)
-    const allowedSources = ['live_camera_stream', 'camera_sensor', 'realtime_sensor'];
+    // 4. Check Capture Source (must be hardware sensor / camera / live stream or verified offline queue)
+    const allowedSources = ['live_camera_stream', 'camera_sensor', 'realtime_sensor', 'offline_queue_sync'];
     const validSource = allowedSources.includes(captureSource);
 
     if (!validSource) {
