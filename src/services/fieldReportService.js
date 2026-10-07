@@ -1,5 +1,5 @@
-import { reportRepository } from '../repositories/reportRepository.js';
-import { kamProgramRepository } from '../repositories/kamProgramRepository.js';
+import { databaseRepository } from '../repositories/databaseRepository.js';
+import { kamProgramService } from './kamProgramService.js';
 import { ComplianceEngine } from '../engines/complianceEngine.js';
 import { MediaAnalysisEngine } from '../engines/mediaAnalysisEngine.js';
 import { WatermarkStampEngine } from '../engines/watermarkStampEngine.js';
@@ -42,9 +42,13 @@ class FieldReportService {
     }
 
     // 2. Fetch KAM address program for this contractor
-    const kamProgram = contractorId
-      ? kamProgramRepository.getByContractorId(contractorId)
-      : kamProgramRepository.getByContractorName(contractorName);
+    const allPrograms = await kamProgramService.getPrograms(contractorId);
+    let kamProgram = null;
+    if (contractorId) {
+      kamProgram = allPrograms.find(p => p.contractorId === contractorId);
+    } else if (contractorName) {
+      kamProgram = allPrograms.find(p => p.contractorName === contractorName);
+    }
 
     // 3. COMPLIANCE ENGINE: cross-reference with KAM program
     const complianceResult = ComplianceEngine.evaluate({
@@ -152,7 +156,7 @@ class FieldReportService {
       }
     };
 
-    const savedReport = reportRepository.createReport(reportRecord);
+    const savedReport = await databaseRepository.saveReport(reportRecord);
 
     return {
       success: true,

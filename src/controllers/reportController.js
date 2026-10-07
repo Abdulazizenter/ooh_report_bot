@@ -3,13 +3,15 @@ import { databaseRepository } from '../repositories/databaseRepository.js';
 import { PdfReportService } from '../services/pdfReportService.js';
 
 export class ReportController {
-  static getReports(req, res) {
+  static async getReports(req, res) {
     try {
-      const db = databaseRepository._readDb();
-      const constructionsMap = new Map((db.constructions || []).map(c => [c.id, c]));
-      const suppliersMap = new Map((db.suppliers || []).map(s => [s.id, s]));
+      const dbConstructions = await databaseRepository.getConstructions();
+      const dbSuppliers = await databaseRepository.getSuppliers();
+      const dbReports = await databaseRepository.getReports();
+      const constructionsMap = new Map((dbConstructions || []).map(c => [c.id, c]));
+      const suppliersMap = new Map((dbSuppliers || []).map(s => [s.id, s]));
 
-      let reports = (db.reports || []).map(r => {
+      let reports = (dbReports || []).map(r => {
         const c = constructionsMap.get(r.construction_id) || {};
         const s = suppliersMap.get(r.supplier_id || c.supplier_id) || {};
         return {
@@ -56,19 +58,20 @@ export class ReportController {
     }
   }
 
-  static createReport(req, res) {
+  static async createReport(req, res) {
     try {
-      const saved = databaseRepository.saveReport(req.body);
+      const saved = await databaseRepository.saveReport(req.body);
       res.status(201).json({ success: true, data: saved });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
     }
   }
 
-  static getReportById(req, res) {
+  static async getReportById(req, res) {
     try {
       const { id } = req.params;
-      const report = (databaseRepository._readDb().reports || []).find(r => r.id === id);
+      const dbReports = await databaseRepository.getReports();
+      const report = dbReports.find(r => r.id === id);
       if (!report) {
         return res.status(404).json({ success: false, error: 'Отчет не найден' });
       }
@@ -78,31 +81,33 @@ export class ReportController {
     }
   }
 
-  static updateReport(req, res) {
+  static async updateReport(req, res) {
     try {
       const { id } = req.params;
-      const report = (databaseRepository._readDb().reports || []).find(r => r.id === id);
+      const dbReports = await databaseRepository.getReports();
+      const report = dbReports.find(r => r.id === id);
       if (!report) {
         return res.status(404).json({ success: false, error: 'Отчет не найден' });
       }
       Object.assign(report, req.body);
-      databaseRepository.saveReport(report);
+      await databaseRepository.saveReport(report);
       res.json({ success: true, message: 'Значения отчета успешно обновлены', data: report });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
     }
   }
 
-  static verifyReport(req, res) {
+  static async verifyReport(req, res) {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      const report = (databaseRepository._readDb().reports || []).find(r => r.id === id);
+      const dbReports = await databaseRepository.getReports();
+      const report = dbReports.find(r => r.id === id);
       if (!report) {
         return res.status(404).json({ success: false, error: 'Отчет не найден' });
       }
       report.status = status || 'APPROVED';
-      databaseRepository.saveReport(report);
+      await databaseRepository.saveReport(report);
       res.json({ success: true, message: 'Статус верификации обновлен', data: report });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
@@ -126,49 +131,50 @@ export class ReportController {
     }
   }
 
-  static deleteReport(req, res) {
+  static async deleteReport(req, res) {
     try {
       const { id } = req.params;
-      const db = databaseRepository._readDb();
-      const idx = (db.reports || []).findIndex(r => r.id === id);
-      if (idx === -1) {
-        return res.status(404).json({ success: false, error: 'Отчет не найден' });
+      if (typeof databaseRepository.deleteReport === 'function') {
+        await databaseRepository.deleteReport(id);
+      } else {
+        await databaseRepository._query('DELETE FROM reports WHERE id = $1', [id]);
       }
-      db.reports.splice(idx, 1);
       res.json({ success: true, message: 'Отчет успешно удален' });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
   }
 
-  static getContractors(req, res) {
+  static async getContractors(req, res) {
     try {
-      const suppliers = databaseRepository.getSuppliers();
+      const suppliers = await databaseRepository.getSuppliers();
       res.json({ success: true, data: suppliers });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
   }
 
-  static getConstructions(req, res) {
+  static async getConstructions(req, res) {
     try {
-      const constructions = databaseRepository.getConstructions();
+      const constructions = await databaseRepository.getConstructions();
       res.json({ success: true, data: constructions });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
   }
 
-  static getStats(req, res) {
+  static async getStats(req, res) {
     try {
-      const db = databaseRepository._readDb();
-      const reports = db.reports || [];
+      const reports = await databaseRepository.getReports();
+      const suppliers = await databaseRepository.getSuppliers();
+      const constructions = await databaseRepository.getConstructions();
+      
       const totalReports = reports.length;
       const verifiedReports = reports.filter(r => (r.status || '').toUpperCase() === 'APPROVED').length;
       const rejectedReports = reports.filter(r => (r.status || '').toUpperCase() === 'REJECTED').length;
       const pendingReports = reports.filter(r => (r.status || '').toUpperCase() === 'PENDING').length;
-      const totalContractors = (db.suppliers || []).length;
-      const totalConstructions = (db.constructions || []).length;
+      const totalContractors = (suppliers || []).length;
+      const totalConstructions = (constructions || []).length;
 
       res.json({
         success: true,
@@ -188,13 +194,16 @@ export class ReportController {
 
   static async exportPdfDossier(req, res) {
     try {
-      const db = databaseRepository._readDb();
       const supplierId = req.query.supplierId;
-      let reports = db.reports || [];
+      const dbReports = await databaseRepository.getReports();
+      const dbConstructions = await databaseRepository.getConstructions();
+      const dbSuppliers = await databaseRepository.getSuppliers();
+      
+      let reports = dbReports || [];
       if (supplierId) reports = reports.filter(r => r.supplier_id === supplierId);
       
-      const constructionsMap = new Map((db.constructions || []).map(c => [c.id, c]));
-      const supplier = (db.suppliers || []).find(s => s.id === supplierId) || { name: 'Все поставщики' };
+      const constructionsMap = new Map((dbConstructions || []).map(c => [c.id, c]));
+      const supplier = (dbSuppliers || []).find(s => s.id === supplierId) || { name: 'Все поставщики' };
 
       const pdfBuffer = await PdfReportService.generateDossierPdf(reports, constructionsMap, supplier);
 
@@ -206,14 +215,16 @@ export class ReportController {
     }
   }
 
-  static exportCSV(req, res) {
+  static async exportCSV(req, res) {
     try {
-      const db = databaseRepository._readDb();
-      const constructionsMap = new Map((db.constructions || []).map(c => [c.id, c]));
-      const suppliersMap = new Map((db.suppliers || []).map(s => [s.id, s]));
+      const dbReports = await databaseRepository.getReports();
+      const dbConstructions = await databaseRepository.getConstructions();
+      const dbSuppliers = await databaseRepository.getSuppliers();
+      const constructionsMap = new Map((dbConstructions || []).map(c => [c.id, c]));
+      const suppliersMap = new Map((dbSuppliers || []).map(s => [s.id, s]));
 
       const header = 'ID;Поставщик;Конструкция;Сторона;Тип;Адрес;Дата съемки;Статус;Уверенность AI;GPS Координаты;Ссылка на фото\n';
-      const rows = (db.reports || []).map(r => {
+      const rows = (dbReports || []).map(r => {
         const c = constructionsMap.get(r.construction_id) || {};
         const s = suppliersMap.get(r.supplier_id || c.supplier_id) || {};
         const dateStr = r.captured_at ? new Date(r.captured_at).toLocaleString('ru-RU') : '';
@@ -242,12 +253,13 @@ export class ReportController {
     }
   }
 
-  static getUsers(req, res) {
+  static async getUsers(req, res) {
     try {
-      const suppliers = databaseRepository.getSuppliers();
+      const suppliers = await databaseRepository.getSuppliers();
       const suppliersMap = new Map(suppliers.map(s => [s.id, s.name]));
 
-      const users = databaseRepository.getUsers().map(u => ({
+      let users = await databaseRepository.getUsers();
+      users = users.map(u => ({
         ...u,
         full_name: u.full_name || u.name,
         is_active: u.is_active ?? u.active ?? false,
@@ -259,10 +271,10 @@ export class ReportController {
     }
   }
 
-  static getUser(req, res) {
+  static async getUser(req, res) {
     try {
       const { id } = req.params;
-      const user = databaseRepository.getUserById(id);
+      const user = await databaseRepository.getUserById(id);
       if (!user) {
         return res.status(404).json({ success: false, error: 'Пользователь не найден' });
       }
@@ -272,10 +284,10 @@ export class ReportController {
     }
   }
 
-  static updateUser(req, res) {
+  static async updateUser(req, res) {
     try {
       const { id } = req.params;
-      const user = databaseRepository.getUserById(id);
+      const user = await databaseRepository.getUserById(id);
       if (!user) {
         return res.status(404).json({ success: false, error: 'Пользователь не найден' });
       }
@@ -286,40 +298,10 @@ export class ReportController {
       }
       if (req.body.supplier_id !== undefined) user.supplier_id = req.body.supplier_id;
       if (req.body.full_name !== undefined) user.full_name = req.body.full_name;
-      databaseRepository.saveUser(user);
+      await databaseRepository.saveUser(user);
       res.json({ success: true, message: 'Данные пользователя успешно обновлены', data: user });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
     }
   }
-
-  static exportCSV(req, res) {
-    try {
-      const reports = reportService.getAllReports();
-      
-      const csvHeader = 'ID,Contractor,Representative,City,Address,Code,Side,Type,Lighting,Date,Time,Status,Verification,Hash,PhotoURL\n';
-      const csvRows = reports.map(r => {
-        const contractorName = (r.contractor?.name || '').replace(/,/g, '');
-        const repName = (r.contractor?.representative || '').replace(/,/g, '');
-        const city = (r.location?.city || '').replace(/,/g, '');
-        const address = (r.location?.address || '').replace(/,/g, '');
-        const code = r.construction?.code || '';
-        const side = r.construction?.side || '';
-        const type = r.construction?.type || '';
-        const light = r.construction?.lightingType || '';
-        const photoUrl = r.photoUrl || (r.photos && r.photos[0]) || '';
-        
-        return `${r.id},${contractorName},${repName},${city},${address},${code},${side},${type},${light},${r.displayDate},${r.displayTime},${r.status},${r.verificationStatus},${r.stampHash || ''},${photoUrl}`;
-      });
-
-      const csvData = csvHeader + csvRows.join('\n');
-
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="ooh_reports_export.csv"');
-      res.status(200).send(Buffer.from('\uFEFF' + csvData, 'utf-8')); // Add BOM for Excel
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  }
 }
-

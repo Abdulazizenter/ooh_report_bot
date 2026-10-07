@@ -2,6 +2,7 @@ import { spartanWorkflowService } from '../services/spartanWorkflowService.js';
 import { databaseRepository } from '../repositories/databaseRepository.js';
 import { normalizeWorkbook } from '../services/excelImportService.js';
 import { validateTelegramInitData } from '../utils/telegramAuth.js';
+import fs from 'fs';
 import { PdfReportService } from '../services/pdfReportService.js';
 
 export class SpartanController {
@@ -29,39 +30,50 @@ export class SpartanController {
 
       if (isCloudEmpty) {
         // Cloud is empty, seed it with local DB
-        const localDb = databaseRepository._readDb();
+        const users = await databaseRepository.getUsers();
+        const suppliers = await databaseRepository.getSuppliers();
+        const constructions = await databaseRepository.getConstructions();
+        const reports = await databaseRepository.getReports();
         
         await Promise.all([
-          req.workspace.clearAndWriteSheet(ssId, 'Users', localDb.users || []),
-          req.workspace.clearAndWriteSheet(ssId, 'Suppliers', localDb.suppliers || []),
-          req.workspace.clearAndWriteSheet(ssId, 'Constructions', localDb.constructions || []),
-          req.workspace.clearAndWriteSheet(ssId, 'Reports', localDb.reports || [])
+          req.workspace.clearAndWriteSheet(ssId, 'Users', users || []),
+          req.workspace.clearAndWriteSheet(ssId, 'Suppliers', suppliers || []),
+          req.workspace.clearAndWriteSheet(ssId, 'Constructions', constructions || []),
+          req.workspace.clearAndWriteSheet(ssId, 'Reports', reports || [])
         ]);
 
         return res.json({ success: true, message: 'Cloud database seeded from local.' });
       } else {
         // Cloud has data, overwrite local DB
-        // For Reports, we need to map back to original fields if needed, but for now we just store as-is
-        const newDb = {
-          users: sheetUsers.map(u => ({ ...u, telegram_id: Number(u.telegram_id) })),
-          suppliers: sheetSuppliers,
-          constructions: sheetConstructions,
-          reports: sheetReports.map(r => ({
-            id: r.id,
-            construction_id: r.constructionId,
-            contractorId: r.contractorId,
-            supplier_id: r.contractorId,
-            telegram_id: Number(r.telegram_id),
-            captured_at: r.displayDate && r.displayTime ? `${r.displayDate} ${r.displayTime}` : new Date().toISOString(),
-            status: r.status,
-            photo_url: r.photo_url,
-            stamp_hash: r.stamp_hash,
-            detected_issues: r.issues ? r.issues.split(', ') : [],
-            ai_reasoning: r.reasoning
-          }))
-        };
+        await databaseRepository.clearDb();
 
-        databaseRepository._writeDb(newDb);
+        const newUsers = sheetUsers.map(u => ({ ...u, telegram_id: Number(u.telegram_id) }));
+        for (const u of newUsers) await databaseRepository.saveUser(u);
+        for (const s of sheetSuppliers) await databaseRepository.saveSupplier(s);
+
+        const constrBatches = {};
+        for (const c of sheetConstructions) {
+          const key = `${c.supplier_id}_${c.month_period || '2026-09'}`;
+          if (!constrBatches[key]) constrBatches[key] = { supplier_id: c.supplier_id, month_period: c.month_period || '2026-09', constructions: [] };
+          constrBatches[key].constructions.push(c);
+        }
+        for (const b of Object.values(constrBatches)) await databaseRepository.saveConstructionsBatch(b);
+
+        const newReports = sheetReports.map(r => ({
+          id: r.id,
+          construction_id: r.constructionId,
+          specialist_id: r.specialist_id || 'system',
+          supplier_id: r.contractorId,
+          telegram_id: Number(r.telegram_id),
+          captured_at: r.displayDate && r.displayTime ? `${r.displayDate} ${r.displayTime}` : new Date().toISOString(),
+          status: r.status,
+          photo_url: r.photo_url,
+          stamp_hash: r.stamp_hash,
+          detected_issues: r.issues ? r.issues.split(', ') : [],
+          ai_reasoning: r.reasoning
+        }));
+
+        for (const r of newReports) await databaseRepository.saveReport(r);
 
         return res.json({ success: true, message: 'Local database updated from cloud.' });
       }
@@ -91,12 +103,12 @@ export class SpartanController {
         return res.status(400).json({ success: false, error: 'Некорректный Telegram user: отсутствует ID' });
       }
       const tgId = Number(tgIdStr);
-      let user = databaseRepository.getUserByTelegramId(tgIdStr);
+      let user = await databaseRepository.getUserByTelegramId(tgIdStr);
       
       const username = (rawUser.username || '').toLowerCase();
       const ownerUsernames = ['abdulazizenter', 'abdulaziz_ibt'];
       const isOwner = tgId === 85993905 || (username && ownerUsernames.includes(username));
-      const allUsers = databaseRepository.getUsers();
+      const allUsers = await databaseRepository.getUsers();
       const hasActiveAdmin = allUsers.some(u => u.role === 'admin' && u.is_active !== false);
 
       if (!user) {
@@ -151,9 +163,9 @@ export class SpartanController {
       if (!req.auth?.userId || req.auth.userId !== actorUserId) {
         return res.status(403).json({ success: false, error: 'Недействительная сессия администратора' });
       }
-      const actor = databaseRepository.getUserById(actorUserId);
+      const actor = await databaseRepository.getUserById(actorUserId);
       if (!actor || actor.role !== 'admin' || actor.is_active === false) return res.status(403).json({ success: false, error: 'Только активный администратор может назначать роль' });
-      const allUsers = databaseRepository.getUsers();
+      const allUsers = await databaseRepository.getUsers();
       const userIndex = allUsers.findIndex(u => u.id === userId);
       
       if (userIndex === -1) {
@@ -164,7 +176,7 @@ export class SpartanController {
       user.role = 'admin';
       user.is_active = true;
       
-      databaseRepository.saveUser(user);
+      await databaseRepository.saveUser(user);
       
       res.json({ success: true, user });
     } catch (err) {
@@ -174,7 +186,7 @@ export class SpartanController {
 
   static async getMe(req, res) {
     try {
-      const user = databaseRepository.getUserById(req.auth.userId);
+      const user = await databaseRepository.getUserById(req.auth.userId);
       if (!user) return res.status(404).json({ error: 'Пользователь не найден' });
       res.json({ user });
     } catch (err) {
@@ -185,11 +197,11 @@ export class SpartanController {
   static async getUserProfile(req, res) {
     try {
       const { telegramId } = req.params;
-      const user = databaseRepository.getUserByTelegramId(telegramId);
+      const user = await databaseRepository.getUserByTelegramId(telegramId);
       if (!user) {
         return res.status(404).json({ error: 'Пользователь не найден' });
       }
-      const supplier = user.supplier_id ? databaseRepository.getSupplierById(user.supplier_id) : null;
+      const supplier = user.supplier_id ? await databaseRepository.getSupplierById(user.supplier_id) : null;
       res.json({ user, supplier });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -199,7 +211,7 @@ export class SpartanController {
   static async getNearbyConstructions(req, res) {
     try {
       const { lat, lon, telegramId, month } = req.query;
-      const list = spartanWorkflowService.getNearbyTasks({
+      const list = await spartanWorkflowService.getNearbyTasks({
         latitude: lat,
         longitude: lon,
         specialistTelegramId: telegramId,
@@ -209,6 +221,13 @@ export class SpartanController {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  }
+
+  static async getJobStatus(req, res) {
+    const { jobId } = req.params;
+    const status = spartanWorkflowService.getJobStatus(jobId);
+    if (status.status === 'NOT_FOUND') return res.status(404).json(status);
+    res.json(status);
   }
 
   static async submitSpecialistReport(req, res) {
@@ -224,7 +243,7 @@ export class SpartanController {
         captureSource
       } = req.body;
 
-      if (!constructionId || !mediaBase64) {
+      if (!constructionId || !mediaUrl) {
         return res.status(400).json({
           status: 'REJECTED',
           confidence_score: 1.0,
@@ -233,7 +252,7 @@ export class SpartanController {
         });
       }
 
-      const result = await spartanWorkflowService.submitSpecialistReport({
+      const result = await spartanWorkflowService.submitSpecialistReportAsync({
         telegramId,
         constructionId,
         mediaBase64,
@@ -245,7 +264,7 @@ export class SpartanController {
         workspace: req.workspace
       });
 
-      res.json(result);
+      res.status(202).json(result);
     } catch (err) {
       res.status(500).json({
         status: 'REJECTED',
@@ -259,7 +278,7 @@ export class SpartanController {
   static async getKamDashboard(req, res) {
     try {
       const { month } = req.query;
-      const dashboard = spartanWorkflowService.getKamDashboard(month || '2026-09');
+      const dashboard = await spartanWorkflowService.getKamDashboard(month || '2026-09');
       res.json(dashboard);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -269,7 +288,7 @@ export class SpartanController {
   static async uploadKamTz(req, res) {
     try {
       const { supplierId, monthPeriod, fileName, constructions, defaultCriteria } = req.body;
-      const result = spartanWorkflowService.uploadKamTzPackage({
+      const result = await spartanWorkflowService.uploadKamTzPackage({
         supplierId,
         monthPeriod: monthPeriod || '2026-09',
         fileName: fileName || 'tz_upload.zip',
@@ -287,23 +306,23 @@ export class SpartanController {
   }
 
   static async previewImport(req, res) {
-    try { if (!req.file) return res.status(400).json({ success: false, error: 'Файл Excel не передан' }); const preview = normalizeWorkbook(req.file.buffer, { supplierId: req.body.supplierId, period: req.body.period }); const token = databaseRepository.recordImportRun({ supplier_id: req.body.supplierId || '', month_period: req.body.period || '', file_name: req.file.originalname, checksum: preview.checksum, status: 'PREVIEW', valid_rows: preview.summary.valid, warning_rows: preview.summary.warnings, error_rows: preview.summary.errors, preview_rows: preview.valid }); res.json({ success: true, data: { ...preview, importRunId: token.id } }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
+    try { if (!req.file) return res.status(400).json({ success: false, error: 'Файл Excel не передан' }); const preview = normalizeWorkbook(fs.readFileSync(req.file.path), { supplierId: req.body.supplierId, period: req.body.period }); const token = await databaseRepository.recordImportRun({ supplier_id: req.body.supplierId || '', month_period: req.body.period || '', file_name: req.file.originalname, checksum: preview.checksum, status: 'PREVIEW', valid_rows: preview.summary.valid, warning_rows: preview.summary.warnings, error_rows: preview.summary.errors, preview_rows: preview.valid }); res.json({ success: true, data: { ...preview, importRunId: token.id } }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
   }
 
   static async commitImport(req, res) {
     try {
       const { importRunId, supplierId, monthPeriod } = req.body;
-      const run = databaseRepository.getImportRuns().find(item => item.id === importRunId);
+      const run = await databaseRepository.getImportRuns().find(item => item.id === importRunId);
       if (!run || run.status !== 'PREVIEW' || run.supplier_id !== supplierId || run.month_period !== monthPeriod) return res.status(409).json({ success: false, error: 'Предпросмотр импорта устарел или не совпадает с параметрами.' });
       const constructions = Array.isArray(run.preview_rows) ? run.preview_rows : [];
-      const result = databaseRepository.saveConstructionsBatch({ supplier_id: supplierId, month_period: monthPeriod, constructions });
-      databaseRepository.recordImportRun({ ...run, id: importRunId, status: 'COMMITTED', committed_at: new Date().toISOString() });
+      const result = await databaseRepository.saveConstructionsBatch({ supplier_id: supplierId, month_period: monthPeriod, constructions });
+      await databaseRepository.recordImportRun({ ...run, id: importRunId, status: 'COMMITTED', committed_at: new Date().toISOString() });
       if (req.workspace) { const ssId = await req.workspace.findOrCreateDatabaseSpreadsheet(); await req.workspace.clearAndWriteSheet(ssId, 'Constructions', databaseRepository.getConstructions()); }
       res.json({ success: true, data: result });
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
   }
 
-  static async getSupplierReport(req, res) { try { const data = databaseRepository.getSupplierReport(req.params.supplierId, req.query.period, req.query.status); if (!data) return res.status(404).json({ success: false, error: 'Поставщик не найден' }); res.json({ success: true, data }); } catch (err) { res.status(500).json({ success: false, error: err.message }); } }
+  static async getSupplierReport(req, res) { try { const data = await databaseRepository.getSupplierReport(req.params.supplierId, req.query.period, req.query.status); if (!data) return res.status(404).json({ success: false, error: 'Поставщик не найден' }); res.json({ success: true, data }); } catch (err) { res.status(500).json({ success: false, error: err.message }); } }
 
   static async adminClearDatabase(req, res) {
     try {
@@ -320,13 +339,24 @@ export class SpartanController {
       if (!constructions || !Array.isArray(constructions)) {
         return res.status(400).json({ success: false, error: 'Ожидается массив constructions' });
       }
-      const db = databaseRepository._readDb();
-      db.constructions = constructions.map(c => ({
-        id: `cst_${Date.now()}_${Math.floor(Math.random()*1000)}`,
-        ...c,
-        created_at: new Date().toISOString()
-      }));
-      databaseRepository._writeDb(db);
+      
+      const batches = {};
+      for (const c of constructions) {
+        const sid = c.supplier_id || 'sup_01';
+        const mp = c.month_period || '2026-09';
+        const key = `${sid}_${mp}`;
+        if (!batches[key]) batches[key] = { supplier_id: sid, month_period: mp, constructions: [] };
+        
+        batches[key].constructions.push({
+          id: c.id || `cst_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+          ...c
+        });
+      }
+
+      for (const b of Object.values(batches)) {
+        await databaseRepository.saveConstructionsBatch(b);
+      }
+      
       res.json({ success: true, message: `Успешно загружено ${constructions.length} конструкций` });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -336,12 +366,12 @@ export class SpartanController {
   static async generateReportAct(req, res) {
     try {
       await databaseRepository.waitUntilReady();
-      const report = databaseRepository.getReportById(req.params.id);
+      const report = await databaseRepository.getReportById(req.params.id);
       if (!report) return res.status(404).send('<h1>404 — Отчет не найден</h1>');
 
-      const construction = databaseRepository.getConstructionById(report.construction_id);
-      const supplier = databaseRepository.getSupplierById(report.supplier_id);
-      const specialist = databaseRepository.getUserById(report.specialist_id);
+      const construction = await databaseRepository.getConstructionById(report.construction_id);
+      const supplier = await databaseRepository.getSupplierById(report.supplier_id);
+      const specialist = await databaseRepository.getUserById(report.specialist_id);
 
       const html = PdfReportService.generateReportHtmlAct({
         report,

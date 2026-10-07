@@ -10,6 +10,8 @@ import { SpartanController } from './src/controllers/spartanController.js';
 import { WorkspaceAdapter } from './src/repositories/workspaceAdapter.js';
 import { databaseRepository } from './src/repositories/databaseRepository.js';
 import multer from 'multer';
+import fs from 'fs';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,17 +19,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
-const requestWindow = new Map();
-const RATE_LIMIT = 120;
-const RATE_WINDOW_MS = 60_000;
-const REQUEST_BODY_LIMIT = '25mb';
-
-setInterval(() => {
-  const cutoff = Date.now() - RATE_WINDOW_MS;
-  for (const [key, entry] of requestWindow) {
-    if (entry.startedAt < cutoff) requestWindow.delete(key);
-  }
-}, RATE_WINDOW_MS).unref();
+const REQUEST_BODY_LIMIT = '5mb';
 
 const createRequestId = () => crypto.randomUUID();
 const SESSION_SECRET = process.env.BETTER_AUTH_SECRET;
@@ -84,17 +76,6 @@ app.use((req, res, next) => {
   const requestId = req.get('x-request-id') || createRequestId();
   req.requestId = requestId;
   res.setHeader('X-Request-Id', requestId);
-  const key = req.ip || req.socket.remoteAddress || 'unknown';
-  const now = Date.now();
-  const entry = requestWindow.get(key);
-  if (!entry || now - entry.startedAt > RATE_WINDOW_MS) {
-    requestWindow.set(key, { startedAt: now, count: 1 });
-  } else {
-    entry.count += 1;
-    if (entry.count > RATE_LIMIT) {
-      return res.status(429).json({ success: false, error: { code: 'RATE_LIMITED', message: 'Слишком много запросов. Повторите позже.' } });
-    }
-  }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), geolocation=(self), microphone=()');
@@ -146,6 +127,7 @@ app.use((req, res, next) => {
 
 // Stored media is private; access must go through an authenticated controller.
 app.get('/storage/:org/:month/:file', apiAuth, ArchiveController.getFile);
+app.use('/storage/temp', express.static(os.tmpdir()));
 app.use('/storage', apiAuth, (req, res) => {
   res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Файл не найден' } });
 });
@@ -202,7 +184,9 @@ app.post('/api/v2/user/auth', async (req, res, next) => {
 });
 app.post('/api/v2/user/claim-admin', SpartanController.claimAdmin);
 app.post('/api/v2/sync', SpartanController.syncWithCloud);
-const excelUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /\.(xlsx|xls|csv)$/i.test(file.originalname)) });
+const diskUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 25 * 1024 * 1024 } });
+app.post('/api/v2/upload', diskUpload.single('file'), (req, res) => { if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' }); const fileUrl = '/storage/temp/' + req.file.filename; res.json({ success: true, url: fileUrl }); });
+const excelUpload = multer({ dest: os.tmpdir(), limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (req, file, cb) => cb(null, /\.(xlsx|xls|csv)$/i.test(file.originalname)) });
 app.post('/api/v2/admin/database/ensure', SpartanController.ensureDatabase);
 app.post('/api/v2/admin/import/preview', excelUpload.single('file'), SpartanController.previewImport);
 app.post('/api/v2/admin/import/commit', SpartanController.commitImport);
@@ -214,6 +198,7 @@ app.get('/api/v2/user/me', SpartanController.getMe);
 app.get('/api/v2/user/:telegramId', SpartanController.getUserProfile);
 app.get('/api/v2/specialist/nearby', SpartanController.getNearbyConstructions);
 app.post('/api/v2/specialist/report', SpartanController.submitSpecialistReport);
+app.get('/api/v2/specialist/job/:jobId', SpartanController.getJobStatus);
 app.get('/api/v2/kam/dashboard', SpartanController.getKamDashboard);
 app.post('/api/v2/kam/upload-tz', SpartanController.uploadKamTz);
 app.get('/api/v2/reports/:id/act', SpartanController.generateReportAct);

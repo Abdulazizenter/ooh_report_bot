@@ -2,9 +2,9 @@ import { databaseRepository } from '../repositories/databaseRepository.js';
 import { MediaAnalysisEngine } from '../engines/mediaAnalysisEngine.js';
 
 class KamProgramService {
-  getPrograms(contractorId = null) {
-    const suppliers = databaseRepository.getSuppliers();
-    const constructions = databaseRepository.getConstructions();
+  async getPrograms(contractorId = null) {
+    const suppliers = await databaseRepository.getSuppliers();
+    const constructions = await databaseRepository.getConstructions();
 
     return suppliers
       .filter(s => !contractorId || s.id === contractorId)
@@ -33,7 +33,7 @@ class KamProgramService {
   /**
    * KAM single-shot initialization or update of construction program and master criteria file
    */
-  registerOrUpdateProgram({
+  async registerOrUpdateProgram({
     contractorId,
     contractorName,
     inn,
@@ -47,9 +47,10 @@ class KamProgramService {
       throw new Error('Укажите идентификатор или наименование поставщика');
     }
 
+    const suppliers = await databaseRepository.getSuppliers();
     const existing = contractorId
-      ? databaseRepository.getSupplierById(contractorId)
-      : databaseRepository.getSuppliers().find(s => s.name === contractorName);
+      ? await databaseRepository.getSupplierById(contractorId)
+      : suppliers.find(s => s.name === contractorName);
 
     const targetContractorId = contractorId || existing?.id || `sup_${Date.now()}`;
     const targetContractorName = contractorName || existing?.name || 'Поставщик OOH';
@@ -91,7 +92,7 @@ class KamProgramService {
     }
 
     if (cleanConstructions.length > 0) {
-      databaseRepository.saveConstructionsBatch({
+      await databaseRepository.saveConstructionsBatch({
         supplier_id: targetContractorId,
         month_period: '2026-09',
         constructions: cleanConstructions

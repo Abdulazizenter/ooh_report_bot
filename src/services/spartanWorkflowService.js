@@ -3,15 +3,39 @@ import { MediaAnalysisEngine } from '../engines/mediaAnalysisEngine.js';
 import { ComplianceEngine } from '../engines/complianceEngine.js';
 import { WatermarkStampEngine } from '../engines/watermarkStampEngine.js';
 import { StorageFolderEngine } from '../engines/storageFolderEngine.js';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { isValidCoordinate, isAllowedCaptureSource, normalizeCaptureTimestamp, decodeMediaDataUri, isValidPeriod } from '../utils/domainValidation.js';
 
+const asyncJobs = new Map();
+const generateJobId = () => `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 export class SpartanWorkflowService {
+
+  getJobStatus(jobId) {
+    return asyncJobs.get(jobId) || { status: 'NOT_FOUND' };
+  }
+
+  async submitSpecialistReportAsync(payload) {
+    const jobId = generateJobId();
+    asyncJobs.set(jobId, { status: 'PROCESSING', progress: 0 });
+    Promise.resolve().then(async () => {
+      try {
+        const result = await this.submitSpecialistReport(payload);
+        asyncJobs.set(jobId, { status: 'COMPLETED', result });
+      } catch (err) {
+        asyncJobs.set(jobId, { status: 'FAILED', error: err.message });
+      }
+    });
+    return { status: 'ACCEPTED', job_id: jobId };
+  }
   /**
    * Specialist: Get nearby constructions sorted by distance
    */
-  getNearbyTasks({ latitude, longitude, specialistTelegramId, monthPeriod = null }) {
+  async getNearbyTasks({ latitude, longitude, specialistTelegramId, monthPeriod = null }) {
     const user = specialistTelegramId
-      ? databaseRepository.getUserByTelegramId(specialistTelegramId)
+      ? await databaseRepository.getUserByTelegramId(specialistTelegramId)
       : null;
 
     const allowedRoles = ['Specialist', 'specialist', 'field', 'admin'];
@@ -32,7 +56,7 @@ export class SpartanWorkflowService {
   async submitSpecialistReport({
     telegramId,
     constructionId,
-    mediaBase64,
+    mediaUrl,
     mediaType = 'image/jpeg',
     latitude,
     longitude,
@@ -41,14 +65,14 @@ export class SpartanWorkflowService {
   }) {
     await databaseRepository.waitUntilReady();
     // 1. Verify User
-    const user = databaseRepository.getUserByTelegramId(telegramId);
+    const user = await databaseRepository.getUserByTelegramId(telegramId);
     const allowedRoles = ['Specialist', 'specialist', 'field', 'admin'];
     if (!user || !allowedRoles.includes(user.role) || user.is_active === false || !user.supplier_id) {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Пользователь не авторизован как активный специалист с назначенным поставщиком.'], reasoning: 'Сначала завершите регистрацию и дождитесь назначения поставщика.' };
     }
 
     // 2. Fetch Construction
-    const construction = databaseRepository.getConstructionById(constructionId);
+    const construction = await databaseRepository.getConstructionById(constructionId);
     if (!construction || construction.supplier_id !== user.supplier_id) {
       return {
         status: 'REJECTED',
@@ -58,7 +82,7 @@ export class SpartanWorkflowService {
       };
     }
 
-    const supplier = databaseRepository.getSupplierById(construction.supplier_id);
+    const supplier = await databaseRepository.getSupplierById(construction.supplier_id);
     if (!supplier) {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Поставщик конструкции не найден.'], reasoning: 'Адресная программа содержит некорректную привязку поставщика.' };
     }
@@ -70,6 +94,19 @@ export class SpartanWorkflowService {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Отсутствуют или некорректны GPS-координаты съемки.'], reasoning: 'Для отчета нужны валидные координаты в пределах Земли.' };
     }
     const normalizedTimestamp = normalizeCaptureTimestamp(captureTimestamp);
+    let mediaBase64 = '';
+    if (mediaUrl.startsWith('/storage/temp/')) {
+      const filename = path.basename(mediaUrl);
+      const filepath = path.join(os.tmpdir(), filename);
+      try {
+        const buffer = await fs.promises.readFile(filepath);
+        mediaBase64 = `data:${mediaType || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+      } catch (e) {
+        // file not found
+      }
+    } else if (mediaUrl.startsWith('data:image/')) {
+      mediaBase64 = mediaUrl;
+    }
     const media = decodeMediaDataUri(mediaBase64);
     if (!media || media.base64.length < 50 || media.base64.length > 34_000_000) {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Медиа-файл отсутствует, поврежден или превышает лимит 25 МБ.'], reasoning: 'Передайте корректный JPEG, PNG или WebP из камеры.' };
@@ -153,7 +190,7 @@ export class SpartanWorkflowService {
         : `Вы находитесь слишком далеко от объекта (${distMeters}м). Подойдите ближе к конструкции и переделайте снимок.`;
 
       // Save rejected report in DB for audit trail, but DO NOT save into clean monthly archive folder
-      databaseRepository.saveReport({
+      await databaseRepository.saveReport({
         construction_id: construction.id,
         specialist_id: user.id,
         supplier_id: construction.supplier_id,
@@ -244,7 +281,7 @@ export class SpartanWorkflowService {
     }
 
     // 8. Write to Relational Reports table
-    const savedReport = databaseRepository.saveReport({
+    const savedReport = await databaseRepository.saveReport({
       construction_id: construction.id,
       specialist_id: user.id,
       supplier_id: construction.supplier_id,
@@ -302,20 +339,20 @@ export class SpartanWorkflowService {
   /**
    * KAM: Get Progress Dashboard by Month
    */
-  getKamDashboard(monthPeriod = '2026-09') {
-    return databaseRepository.getKamDashboard(monthPeriod);
+  async getKamDashboard(monthPeriod = '2026-09') {
+    return await databaseRepository.getKamDashboard(monthPeriod);
   }
 
   /**
    * KAM: Upload TZ / Criteria Package (ZIP, Excel or JSON array)
    */
-  uploadKamTzPackage({ supplierId, monthPeriod = '2026-09', fileName, constructions, defaultCriteria }) {
-    const supplier = databaseRepository.getSupplierById(supplierId);
+  async uploadKamTzPackage({ supplierId, monthPeriod = '2026-09', fileName, constructions, defaultCriteria }) {
+    const supplier = await databaseRepository.getSupplierById(supplierId);
     if (!supplier) {
       return { success: false, error: 'Поставщик не найден.' };
     }
 
-    const result = databaseRepository.saveConstructionsBatch({
+    const result = await databaseRepository.saveConstructionsBatch({
       supplier_id: supplierId,
       month_period: monthPeriod,
       constructions: constructions || [],

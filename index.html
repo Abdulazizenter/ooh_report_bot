@@ -1620,6 +1620,40 @@ function compressImage(file, maxDimension = 1920, quality = 0.85) {
 }
 
 // Offline-First resilient storage & sync
+
+async function uploadPhoto(base64Data) {
+  const res = await fetch(base64Data);
+  const blob = await res.blob();
+  const formData = new FormData();
+  formData.append('file', blob, 'photo.jpg');
+  const token = localStorage.getItem('ooh_token');
+  const uploadRes = await fetch('/api/v2/upload', {
+    method: 'POST',
+    headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+    body: formData
+  }).then(r => r.json());
+  if (!uploadRes.success) throw new Error('Upload failed');
+  return uploadRes.url;
+}
+
+async function pollJobStatus(jobId, onComplete, onError) {
+  const check = async () => {
+    try {
+      const res = await api('/api/v2/specialist/job/' + jobId);
+      if (res.status === 'COMPLETED') {
+        onComplete(res.result);
+      } else if (res.status === 'FAILED' || res.status === 'NOT_FOUND') {
+        onError(new Error(res.error || 'Job failed'));
+      } else {
+        setTimeout(check, 2000);
+      }
+    } catch(err) {
+      setTimeout(check, 2000);
+    }
+  };
+  check();
+}
+
 function saveOfflineReport(payload) {
   try {
     const queue = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]');
@@ -1631,30 +1665,51 @@ function saveOfflineReport(payload) {
   }
 }
 
+
 async function flushOfflineQueue() {
   const raw = localStorage.getItem('ooh_offline_queue');
   if (!raw) return;
   try {
     const queue = JSON.parse(raw);
     if (!queue.length) return;
-    toast(`Синхронизация ${queue.length} оффлайн-отчетов...`);
-    const remaining = [];
-    for (const item of queue) {
-      try {
-        await api('/api/v2/specialist/report', { method: 'POST', body: JSON.stringify(item.payload) });
-      } catch (err) {
-        remaining.push(item);
+    toast(`Запуск фоновой синхронизации ${queue.length} оффлайн-отчетов...`);
+    
+    // Process in background without blocking UI
+    (async () => {
+      const remaining = [];
+      for (const item of queue) {
+        try {
+          if (item.payload.mediaBase64) {
+            item.payload.mediaUrl = await uploadPhoto(item.payload.mediaBase64);
+            delete item.payload.mediaBase64;
+          }
+          const initRes = await api('/api/v2/specialist/report', { method: 'POST', body: JSON.stringify(item.payload) });
+          if (initRes.status === 'ACCEPTED' && initRes.job_id) {
+             const result = await new Promise((resolve, reject) => pollJobStatus(initRes.job_id, resolve, reject));
+             if (result.status !== 'APPROVED') {
+               throw new Error(result.reasoning || 'Rejected by AI');
+             }
+          } else if (initRes.status && initRes.status !== 'APPROVED') {
+             throw new Error(initRes.reasoning || 'Rejected');
+          }
+        } catch (err) {
+          console.error('Offline report failed:', err);
+          remaining.push(item);
+        }
       }
-    }
-    localStorage.setItem('ooh_offline_queue', JSON.stringify(remaining));
-    if (remaining.length === 0) {
-      toast('✓ Все оффлайн-отчеты успешно отправлены на сервер!');
-      if (typeof load === 'function') await load();
-    }
+      localStorage.setItem('ooh_offline_queue', JSON.stringify(remaining));
+      if (remaining.length === 0) {
+        toast('✓ Все оффлайн-отчеты успешно переданы в очередь!');
+        if (typeof load === 'function') await load();
+      } else {
+        toast(`Не удалось синхронизировать ${remaining.length} отчетов.`);
+      }
+    })();
   } catch (e) {
     console.error('Queue flush error', e);
   }
 }
+
 
 window.addEventListener('online', flushOfflineQueue);
 
