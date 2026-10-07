@@ -236,6 +236,7 @@ export class SpartanController {
         telegramId,
         constructionId,
         mediaBase64,
+        mediaUrl,
         mediaType,
         latitude,
         longitude,
@@ -243,7 +244,7 @@ export class SpartanController {
         captureSource
       } = req.body;
 
-      if (!constructionId || !mediaUrl) {
+      if (!constructionId || (!mediaBase64 && !mediaUrl)) {
         return res.status(400).json({
           status: 'REJECTED',
           confidence_score: 1.0,
@@ -256,6 +257,7 @@ export class SpartanController {
         telegramId,
         constructionId,
         mediaBase64,
+        mediaUrl,
         mediaType,
         latitude,
         longitude,

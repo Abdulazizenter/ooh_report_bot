@@ -943,7 +943,7 @@
 </div>
 
 <script>
-const state={view:'overview',month:'2026-09',reports:[],stats:null,loading:true,query:'',status:'',user:null,token:localStorage.getItem('ooh_token')||'',nearby:[],location:null,submitting:false,suppliers:[],importPreview:null};
+const state={view:'overview',month:'2026-09',reports:[],stats:null,loading:true,query:'',status:'',user:null,token:localStorage.getItem('ooh_token')||'',nearby:[],location:null,submitting:false,suppliers:[],importPreview:null,offlineCount:0};
 const todayLabel=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
 const $=s=>document.querySelector(s);
 const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -1400,10 +1400,15 @@ function wireEvents(){
         };
 
         try {
-          const result = await api('/api/v2/specialist/report', {
+          let result = await api('/api/v2/specialist/report', {
             method: 'POST',
             body: JSON.stringify(payload)
           });
+
+          if (result.status === 'ACCEPTED' && result.job_id) {
+            toast('Отчет принят на обработку. Ожидание анализа ИИ...');
+            result = await new Promise((resolve, reject) => pollJobStatus(result.job_id, resolve, reject));
+          }
 
           if(result.status === 'APPROVED') {
             if(window.Telegram?.WebApp?.HapticFeedback) {
@@ -1513,10 +1518,8 @@ function loginView(){
 
 function settingsView() {
   const u = state.user || {};
-  let offlineCount = 0;
-  try {
-    offlineCount = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]').length;
-  } catch(e) {}
+  const offlineCount = state.offlineCount || 0;
+  updateOfflineBadge();
 
   return `<section class="hero">
     <div>
@@ -1577,7 +1580,7 @@ function settingsView() {
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--surface-2);border-radius:var(--radius-sm)">
           <div>
             <strong style="display:block;font-size:13px">Оффлайн-очередь</strong>
-            <span class="muted" style="font-size:11px">Отчетов в очереди: ${offlineCount}</span>
+            <span class="muted" id="offline-queue-count-display" style="font-size:11px">Отчетов в очереди: ${offlineCount}</span>
           </div>
           <button class="primary" id="btn-sync-offline-manual" style="padding:6px 12px;font-size:11px" ${offlineCount === 0 ? 'disabled' : ''}>Синхронизировать</button>
         </div>
@@ -1619,6 +1622,114 @@ function compressImage(file, maxDimension = 1920, quality = 0.85) {
   });
 }
 
+// IndexedDB Storage Engine for robust offline reports (eliminates 5MB localStorage quota)
+const OOH_IDB = {
+  dbName: 'ooh_offline_db',
+  storeName: 'offline_reports',
+  version: 1,
+  _dbPromise: null,
+  getDb() {
+    if (this._dbPromise) return this._dbPromise;
+    this._dbPromise = new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        return reject(new Error('IndexedDB not supported'));
+      }
+      const req = window.indexedDB.open(this.dbName, this.version);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return this._dbPromise;
+  },
+  async getAll() {
+    try {
+      const db = await this.getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(this.storeName, 'readonly');
+        const store = tx.objectStore(this.storeName);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      try { return JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]'); } catch { return []; }
+    }
+  },
+  async put(item) {
+    try {
+      const db = await this.getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        const req = store.put(item);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      const q = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]');
+      q.push(item);
+      localStorage.setItem('ooh_offline_queue', JSON.stringify(q));
+    }
+  },
+  async delete(id) {
+    try {
+      const db = await this.getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      const q = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]');
+      const filtered = q.filter(x => x.id !== id);
+      localStorage.setItem('ooh_offline_queue', JSON.stringify(filtered));
+    }
+  },
+  async clear() {
+    try {
+      const db = await this.getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        const req = store.clear();
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      localStorage.removeItem('ooh_offline_queue');
+    }
+  },
+  async count() {
+    try {
+      const db = await this.getDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(this.storeName, 'readonly');
+        const store = tx.objectStore(this.storeName);
+        const req = store.count();
+        req.onsuccess = () => resolve(req.result || 0);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      try { return JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]').length; } catch { return 0; }
+    }
+  }
+};
+
+async function updateOfflineBadge() {
+  state.offlineCount = await OOH_IDB.count();
+  const el = document.getElementById('offline-queue-count-display');
+  if (el) el.textContent = 'Отчетов в очереди: ' + state.offlineCount;
+  const btn = document.getElementById('btn-sync-offline-manual');
+  if (btn) btn.disabled = (state.offlineCount === 0);
+}
+
 // Offline-First resilient storage & sync
 
 async function uploadPhoto(base64Data) {
@@ -1654,31 +1765,31 @@ async function pollJobStatus(jobId, onComplete, onError) {
   check();
 }
 
-function saveOfflineReport(payload) {
+async function saveOfflineReport(payload) {
   try {
-    const queue = JSON.parse(localStorage.getItem('ooh_offline_queue') || '[]');
-    queue.push({ id: `off_${Date.now()}`, payload, createdAt: new Date().toISOString() });
-    localStorage.setItem('ooh_offline_queue', JSON.stringify(queue));
-    toast('Внимание: Нет стабильной связи. Снимок сохранен оффлайн и будет синхронизирован при появлении сети.');
+    payload.captureSource = 'offline_queue_sync';
+    const item = { id: `off_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`, payload, createdAt: new Date().toISOString() };
+    await OOH_IDB.put(item);
+    await updateOfflineBadge();
+    toast('Внимание: Нет стабильной связи. Снимок надежно сохранен в IndexedDB и будет синхронизирован при появлении сети.');
   } catch(e) {
     console.error('Offline save error', e);
+    toast('Ошибка сохранения в оффлайн-хранилище: ' + e.message);
   }
 }
 
 
 async function flushOfflineQueue() {
-  const raw = localStorage.getItem('ooh_offline_queue');
-  if (!raw) return;
   try {
-    const queue = JSON.parse(raw);
-    if (!queue.length) return;
+    const queue = await OOH_IDB.getAll();
+    if (!queue || !queue.length) return;
     toast(`Запуск фоновой синхронизации ${queue.length} оффлайн-отчетов...`);
     
-    // Process in background without blocking UI
     (async () => {
-      const remaining = [];
+      let failedCount = 0;
       for (const item of queue) {
         try {
+          item.payload.captureSource = 'offline_queue_sync';
           if (item.payload.mediaBase64) {
             item.payload.mediaUrl = await uploadPhoto(item.payload.mediaBase64);
             delete item.payload.mediaBase64;
@@ -1692,17 +1803,18 @@ async function flushOfflineQueue() {
           } else if (initRes.status && initRes.status !== 'APPROVED') {
              throw new Error(initRes.reasoning || 'Rejected');
           }
+          await OOH_IDB.delete(item.id);
         } catch (err) {
           console.error('Offline report failed:', err);
-          remaining.push(item);
+          failedCount++;
         }
       }
-      localStorage.setItem('ooh_offline_queue', JSON.stringify(remaining));
-      if (remaining.length === 0) {
+      await updateOfflineBadge();
+      if (failedCount === 0) {
         toast('✓ Все оффлайн-отчеты успешно переданы в очередь!');
         if (typeof load === 'function') await load();
       } else {
-        toast(`Не удалось синхронизировать ${remaining.length} отчетов.`);
+        toast(`Не удалось синхронизировать ${failedCount} отчетов.`);
       }
     })();
   } catch (e) {
@@ -1803,6 +1915,7 @@ async function fetchWorkspace() {
 }
 
 async function load(){
+  if (typeof updateOfflineBadge === 'function') updateOfflineBadge();
   if(window.Telegram?.WebApp?.initDataUnsafe?.user){
     const tgUser=window.Telegram.WebApp.initDataUnsafe.user;
     await doLogin(tgUser);

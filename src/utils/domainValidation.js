@@ -18,7 +18,7 @@ export function normalizeCaptureTimestamp(value) {
 }
 
 export function isAllowedCaptureSource(source) {
-  return ['live_camera_stream', 'camera_sensor', 'realtime_sensor'].includes(source);
+  return ['live_camera_stream', 'camera_sensor', 'realtime_sensor', 'offline_queue_sync'].includes(source);
 }
 
 export function decodeMediaDataUri(value) {

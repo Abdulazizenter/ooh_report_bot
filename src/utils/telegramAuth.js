@@ -7,6 +7,9 @@ import crypto from 'node:crypto';
 export function validateTelegramInitData(initData, botToken) {
   if (!initData || typeof initData !== 'string') return null;
   if (!botToken) {
+    if (process.env.NODE_ENV === 'production') {
+      return null; // Strict rejection in production if botToken is missing
+    }
     // If bot token is not configured in development, parse unsafe data
     try {
       const params = new URLSearchParams(initData);
@@ -34,7 +37,9 @@ export function validateTelegramInitData(initData, botToken) {
     // calculated_hash = HMAC_SHA256(secret_key, dataCheckString)
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-    if (calculatedHash !== hash) {
+    const calcBuf = Buffer.from(calculatedHash, 'hex');
+    const hashBuf = Buffer.from(hash, 'hex');
+    if (calcBuf.length !== hashBuf.length || !crypto.timingSafeEqual(calcBuf, hashBuf)) {
       return null; // Signature verification failed
     }
 

@@ -56,6 +56,7 @@ export class SpartanWorkflowService {
   async submitSpecialistReport({
     telegramId,
     constructionId,
+    mediaBase64: inputBase64,
     mediaUrl,
     mediaType = 'image/jpeg',
     latitude,
@@ -94,8 +95,8 @@ export class SpartanWorkflowService {
       return { status: 'REJECTED', confidence_score: 1, detected_issues: ['Отсутствуют или некорректны GPS-координаты съемки.'], reasoning: 'Для отчета нужны валидные координаты в пределах Земли.' };
     }
     const normalizedTimestamp = normalizeCaptureTimestamp(captureTimestamp);
-    let mediaBase64 = '';
-    if (mediaUrl.startsWith('/storage/temp/')) {
+    let mediaBase64 = inputBase64 || '';
+    if (!mediaBase64 && typeof mediaUrl === 'string' && mediaUrl.startsWith('/storage/temp/')) {
       const filename = path.basename(mediaUrl);
       const filepath = path.join(os.tmpdir(), filename);
       try {
@@ -104,7 +105,7 @@ export class SpartanWorkflowService {
       } catch (e) {
         // file not found
       }
-    } else if (mediaUrl.startsWith('data:image/')) {
+    } else if (!mediaBase64 && typeof mediaUrl === 'string' && mediaUrl.startsWith('data:image/')) {
       mediaBase64 = mediaUrl;
     }
     const media = decodeMediaDataUri(mediaBase64);

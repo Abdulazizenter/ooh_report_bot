@@ -368,6 +368,80 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log('✓ Proof of Performance (PoP) Act generation passed');
 }
 
-console.log('--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (14/14) ---');
+
+// 16. Test: Remediated defects verification
+{
+  const { isAllowedCaptureSource } = await import("../src/utils/domainValidation.js");
+  const crypto = await import("node:crypto");
+  const { validateTelegramInitData } = await import("../src/utils/telegramAuth.js");
+  const { SpartanController } = await import("../src/controllers/spartanController.js");
+
+  // A. Verify offline_queue_sync is accepted by domain validation
+  assert.strictEqual(isAllowedCaptureSource("offline_queue_sync"), true, "offline_queue_sync must be accepted");
+
+  // B. Verify telegramAuth timingSafeEqual and production guard
+  const botToken = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11";
+  const userJson = JSON.stringify({ id: 85993905, username: "abdulazizenter" });
+  const authDate = Math.floor(Date.now() / 1000);
+  const checkString = "auth_date=" + authDate + "\nquery_id=AAGh123\nuser=" + userJson;
+  const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+  const validHash = crypto.createHmac("sha256", secretKey).update(checkString).digest("hex");
+  const validInitData = "auth_date=" + authDate + "&query_id=AAGh123&user=" + encodeURIComponent(userJson) + "&hash=" + validHash;
+
+  // Short hash / different length shouldn't crash and must reject
+  const shortHashData = "auth_date=" + authDate + "&query_id=AAGh123&user=" + encodeURIComponent(userJson) + "&hash=abcd";
+  assert.strictEqual(validateTelegramInitData(shortHashData, botToken), null, "Short hash rejected cleanly");
+
+  // Production rejection when botToken is absent
+  const prevEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  assert.strictEqual(validateTelegramInitData(validInitData, null), null, "Missing botToken in production must reject");
+  process.env.NODE_ENV = prevEnv;
+
+  // C. Verify SpartanController.submitSpecialistReport accepts mediaBase64 or mediaUrl without ReferenceError
+  let resStatus = null;
+  let resJson = null;
+  const mockRes = {
+    status(code) { resStatus = code; return this; },
+    json(data) { resJson = data; return this; }
+  };
+  // Missing media
+  await SpartanController.submitSpecialistReport({ body: { constructionId: "cst_01" } }, mockRes);
+  assert.strictEqual(resStatus, 400, "Missing media must return 400 without ReferenceError");
+
+  // With mediaBase64
+  let asyncCalled = false;
+  await SpartanController.submitSpecialistReport({
+    body: {
+      constructionId: "cst_01",
+      mediaBase64: "data:image/jpeg;base64,AAAA",
+      latitude: 55.7928,
+      longitude: 37.5432,
+      captureTimestamp: new Date().toISOString(),
+      captureSource: "camera_sensor"
+    }
+  }, mockRes);
+  assert.strictEqual(resStatus, 202, "Valid mediaBase64 accepted into async job queue");
+  assert.strictEqual(resJson.status, "ACCEPTED");
+
+  // With mediaUrl
+  await SpartanController.submitSpecialistReport({
+    body: {
+      constructionId: "cst_01",
+      mediaUrl: "data:image/jpeg;base64,AAAA",
+      latitude: 55.7928,
+      longitude: 37.5432,
+      captureTimestamp: new Date().toISOString(),
+      captureSource: "camera_sensor"
+    }
+  }, mockRes);
+  assert.strictEqual(resStatus, 202, "Valid mediaUrl accepted into async job queue");
+  assert.strictEqual(resJson.status, "ACCEPTED");
+
+  console.log("✓ All defect remediation regression checks passed");
+}
+
+console.log("--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (15/15) ---");
+
 
 
