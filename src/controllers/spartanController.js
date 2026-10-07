@@ -266,7 +266,7 @@ export class SpartanController {
         workspace: req.workspace
       });
 
-      res.status(202).json(result);
+      res.status(200).json(result);
     } catch (err) {
       res.status(500).json({
         status: 'REJECTED',
@@ -308,7 +308,7 @@ export class SpartanController {
   }
 
   static async previewImport(req, res) {
-    try { if (!req.file) return res.status(400).json({ success: false, error: 'Файл Excel не передан' }); const preview = normalizeWorkbook(fs.readFileSync(req.file.path), { supplierId: req.body.supplierId, period: req.body.period }); const token = await databaseRepository.recordImportRun({ supplier_id: req.body.supplierId || '', month_period: req.body.period || '', file_name: req.file.originalname, checksum: preview.checksum, status: 'PREVIEW', valid_rows: preview.summary.valid, warning_rows: preview.summary.warnings, error_rows: preview.summary.errors, preview_rows: preview.valid }); res.json({ success: true, data: { ...preview, importRunId: token.id } }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
+    try { if (!req.file) return res.status(400).json({ success: false, error: 'Файл Excel не передан' }); const preview = await normalizeWorkbook(fs.readFileSync(req.file.path), { supplierId: req.body.supplierId, period: req.body.period }); const token = await databaseRepository.recordImportRun({ supplier_id: req.body.supplierId || '', month_period: req.body.period || '', file_name: req.file.originalname, checksum: preview.checksum, status: 'PREVIEW', valid_rows: preview.summary.valid, warning_rows: preview.summary.warnings, error_rows: preview.summary.errors, preview_rows: preview.valid }); res.json({ success: true, data: { ...preview, importRunId: token.id } }); } catch (err) { res.status(400).json({ success: false, error: err.message }); }
   }
 
   static async commitImport(req, res) {

@@ -1,4 +1,4 @@
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import crypto from 'crypto';
 
 const aliases = {
@@ -14,6 +14,7 @@ const aliases = {
 const clean = value => String(value ?? '').trim();
 const key = value => clean(value).toLowerCase().replace(/[№()]/g, '').replace(/\s+/g, ' ');
 function fieldMap(headers) { const map = {}; headers.forEach((header, index) => { const match = Object.entries(aliases).find(([, names]) => names.includes(key(header))); if (match) map[match[0]] = index; }); return map; }
+
 function parseRows(rows, sheetName, options) {
   if (!rows.length) return [];
   const headers = rows[0].map(clean); const map = fieldMap(headers);
@@ -23,10 +24,25 @@ function parseRows(rows, sheetName, options) {
     return { code: get('code').toUpperCase(), supplier_id: get('supplier_id') || options.supplierId || '', supplier_name: get('supplier_name'), address: get('address'), city: get('city'), type: get('type'), side: get('side') || 'Сторона А', latitude: Number(get('latitude')) || null, longitude: Number(get('longitude')) || null, month_period: get('month_period') || options.period || '', ai_criteria: get('ai_criteria'), extra_data, source_sheet: sheetName, source_row: index + 2 };
   });
 }
-export function normalizeWorkbook(buffer, options = {}) {
-  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true, raw: false });
-  const rows = workbook.SheetNames.flatMap(name => parseRows(XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' }), name, options));
+
+export async function normalizeWorkbook(buffer, options = {}) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const sheetNames = workbook.worksheets.map(ws => ws.name);
+  
+  let allRows = [];
+  workbook.worksheets.forEach(ws => {
+    const rows = [];
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      // row.values is 1-indexed in exceljs, so we slice(1)
+      const values = Array.isArray(row.values) ? row.values.slice(1) : [];
+      rows.push(values);
+    });
+    allRows = allRows.concat(parseRows(rows, ws.name, options));
+  });
+
   const valid = [], errors = [], warnings = [], seen = new Set();
-  rows.forEach(row => { const issues = []; if (!row.code) issues.push('Не указан код конструкции'); if (!row.address) issues.push('Не указан адрес'); if (!row.supplier_id && !row.supplier_name) issues.push('Не указан поставщик'); if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(row.month_period)) issues.push('Некорректный период YYYY-MM'); if (row.latitude !== null && (row.latitude < -90 || row.latitude > 90)) issues.push('Некорректная широта'); if (row.longitude !== null && (row.longitude < -180 || row.longitude > 180)) issues.push('Некорректная долгота'); if (issues.length) errors.push({ row, issues }); else { const stable = `${row.supplier_id || row.supplier_name}|${row.code}|${row.side}|${row.month_period}`; if (seen.has(stable)) warnings.push({ row, issues: ['Дубликат строки в файле'] }); else { seen.add(stable); valid.push({ ...row, import_key: stable }); } } });
-  return { checksum: crypto.createHash('sha256').update(buffer).digest('hex'), sheetNames: workbook.SheetNames, valid, warnings, errors, summary: { total: rows.length, valid: valid.length, warnings: warnings.length, errors: errors.length } };
+  allRows.forEach(row => { const issues = []; if (!row.code) issues.push('Не указан код конструкции'); if (!row.address) issues.push('Не указан адрес'); if (!row.supplier_id && !row.supplier_name) issues.push('Не указан поставщик'); if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(row.month_period)) issues.push('Некорректный период YYYY-MM'); if (row.latitude !== null && (row.latitude < -90 || row.latitude > 90)) issues.push('Некорректная широта'); if (row.longitude !== null && (row.longitude < -180 || row.longitude > 180)) issues.push('Некорректная долгота'); if (issues.length) errors.push({ row, issues }); else { const stable = `${row.supplier_id || row.supplier_name}|${row.code}|${row.side}|${row.month_period}`; if (seen.has(stable)) warnings.push({ row, issues: ['Дубликат строки в файле'] }); else { seen.add(stable); valid.push({ ...row, import_key: stable }); } } });
+  
+  return { checksum: crypto.createHash('sha256').update(buffer).digest('hex'), sheetNames, valid, warnings, errors, summary: { total: allRows.length, valid: valid.length, warnings: warnings.length, errors: errors.length } };
 }

@@ -18,17 +18,14 @@ export class SpartanWorkflowService {
   }
 
   async submitSpecialistReportAsync(payload) {
-    const jobId = generateJobId();
-    asyncJobs.set(jobId, { status: 'PROCESSING', progress: 0 });
-    Promise.resolve().then(async () => {
-      try {
-        const result = await this.submitSpecialistReport(payload);
-        asyncJobs.set(jobId, { status: 'COMPLETED', result });
-      } catch (err) {
-        asyncJobs.set(jobId, { status: 'FAILED', error: err.message });
-      }
-    });
-    return { status: 'ACCEPTED', job_id: jobId };
+    // Vercel Serverless Fix: Process synchronously to avoid container termination before the background job finishes
+    try {
+      const result = await this.submitSpecialistReport(payload);
+      return result; // Will return APPROVED or REJECTED status
+    } catch (err) {
+      console.error('[SpartanWorkflow] Sync execution failed:', err);
+      throw err;
+    }
   }
   /**
    * Specialist: Get nearby constructions sorted by distance

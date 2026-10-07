@@ -405,6 +405,13 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
     status(code) { resStatus = code; return this; },
     json(data) { resJson = data; return this; }
   };
+  const originalGetUserCst = databaseRepository.getUserByTelegramId;
+  const originalGetConstruction = databaseRepository.getConstructionById;
+  const originalGetSupplier = databaseRepository.getSupplierById;
+  databaseRepository.getUserByTelegramId = async () => ({ id: 'usr_spec_01', telegram_id: 20001, full_name: 'Тестовый специалист', role: 'Specialist', supplier_id: 'sup_01', is_active: true });
+  databaseRepository.getConstructionById = async () => ({ id: 'cst_01', supplier_id: 'sup_01', month_period: '2026-10', latitude: 55.7928, longitude: 37.5432 });
+  databaseRepository.getSupplierById = async () => ({ id: 'sup_01', name: 'Test Supplier' });
+
   // Missing media
   await SpartanController.submitSpecialistReport({ body: { constructionId: "cst_01" } }, mockRes);
   assert.strictEqual(resStatus, 400, "Missing media must return 400 without ReferenceError");
@@ -413,31 +420,37 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   let asyncCalled = false;
   await SpartanController.submitSpecialistReport({
     body: {
+      telegramId: "123",
       constructionId: "cst_01",
-      mediaBase64: "data:image/jpeg;base64,AAAA",
+      mediaBase64: "data:image/jpeg;base64,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       latitude: 55.7928,
       longitude: 37.5432,
       captureTimestamp: new Date().toISOString(),
       captureSource: "camera_sensor"
     }
   }, mockRes);
-  assert.strictEqual(resStatus, 202, "Valid mediaBase64 accepted into async job queue");
-  assert.strictEqual(resJson.status, "ACCEPTED");
+  assert.strictEqual(resStatus, 200, "Valid mediaBase64 processed synchronously");
+  if (resJson.status !== 'APPROVED') console.log("Second error:", resJson);
+  assert.strictEqual(resJson.status, "APPROVED");
 
   // With mediaUrl
   await SpartanController.submitSpecialistReport({
     body: {
+      telegramId: "123",
       constructionId: "cst_01",
-      mediaUrl: "data:image/jpeg;base64,AAAA",
+      mediaUrl: "data:image/jpeg;base64,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       latitude: 55.7928,
       longitude: 37.5432,
       captureTimestamp: new Date().toISOString(),
       captureSource: "camera_sensor"
     }
   }, mockRes);
-  assert.strictEqual(resStatus, 202, "Valid mediaUrl accepted into async job queue");
-  assert.strictEqual(resJson.status, "ACCEPTED");
+  assert.strictEqual(resStatus, 200, "Valid mediaUrl processed synchronously");
+  assert.strictEqual(resJson.status, "APPROVED");
 
+  databaseRepository.getUserByTelegramId = originalGetUserCst;
+  databaseRepository.getConstructionById = originalGetConstruction;
+  databaseRepository.getSupplierById = originalGetSupplier;
   console.log("✓ All defect remediation regression checks passed");
 }
 
