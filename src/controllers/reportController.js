@@ -40,6 +40,19 @@ export class ReportController {
         };
       });
 
+      // Role-based data isolation: client users only receive their own APPROVED reports
+      const authUser = req.auth?.userId ? await databaseRepository.getUserById(req.auth.userId) : null;
+      const userRole = (authUser?.role || '').toLowerCase();
+      if (userRole === 'client') {
+        reports = reports.filter(r => {
+          if (r.status.toUpperCase() !== 'APPROVED') return false;
+          if (authUser.supplier_id && r.contractor.id && String(r.contractor.id) !== String(authUser.supplier_id)) {
+            return false;
+          }
+          return true;
+        });
+      }
+
       if (req.query.status) {
         reports = reports.filter(r => r.status.toUpperCase() === req.query.status.toUpperCase());
       }
@@ -75,6 +88,18 @@ export class ReportController {
       if (!report) {
         return res.status(404).json({ success: false, error: 'Отчет не найден' });
       }
+
+      const authUser = req.auth?.userId ? await databaseRepository.getUserById(req.auth.userId) : null;
+      const userRole = (authUser?.role || '').toLowerCase();
+      if (userRole === 'client') {
+        if (report.status.toUpperCase() !== 'APPROVED') {
+          return res.status(403).json({ success: false, error: 'Доступ запрещен: отчет еще не утвержден' });
+        }
+        if (authUser.supplier_id && report.supplier_id && String(report.supplier_id) !== String(authUser.supplier_id)) {
+          return res.status(403).json({ success: false, error: 'Доступ запрещен: чужой арендатор' });
+        }
+      }
+
       res.json({ success: true, data: report });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -194,13 +219,22 @@ export class ReportController {
 
   static async exportPdfDossier(req, res) {
     try {
-      const supplierId = req.query.supplierId;
+      const authUser = req.auth?.userId ? await databaseRepository.getUserById(req.auth.userId) : null;
+      const userRole = (authUser?.role || '').toLowerCase();
+      let supplierId = req.query.supplierId;
+      if (userRole === 'client' && authUser.supplier_id) {
+        supplierId = authUser.supplier_id;
+      }
+
       const dbReports = await databaseRepository.getReports();
       const dbConstructions = await databaseRepository.getConstructions();
       const dbSuppliers = await databaseRepository.getSuppliers();
       
       let reports = dbReports || [];
       if (supplierId) reports = reports.filter(r => r.supplier_id === supplierId);
+      if (userRole === 'client') {
+        reports = reports.filter(r => (r.status || '').toUpperCase() === 'APPROVED');
+      }
       
       const constructionsMap = new Map((dbConstructions || []).map(c => [c.id, c]));
       const supplier = (dbSuppliers || []).find(s => s.id === supplierId) || { name: 'Все поставщики' };
@@ -217,14 +251,27 @@ export class ReportController {
 
   static async exportCSV(req, res) {
     try {
-      const dbReports = await databaseRepository.getReports();
+      const authUser = req.auth?.userId ? await databaseRepository.getUserById(req.auth.userId) : null;
+      const userRole = (authUser?.role || '').toLowerCase();
+
+      let dbReports = (await databaseRepository.getReports()) || [];
       const dbConstructions = await databaseRepository.getConstructions();
       const dbSuppliers = await databaseRepository.getSuppliers();
       const constructionsMap = new Map((dbConstructions || []).map(c => [c.id, c]));
       const suppliersMap = new Map((dbSuppliers || []).map(s => [s.id, s]));
 
+      if (userRole === 'client') {
+        dbReports = dbReports.filter(r => {
+          if ((r.status || '').toUpperCase() !== 'APPROVED') return false;
+          if (authUser.supplier_id && r.supplier_id && String(r.supplier_id) !== String(authUser.supplier_id)) {
+            return false;
+          }
+          return true;
+        });
+      }
+
       const header = 'ID;Поставщик;Конструкция;Сторона;Тип;Адрес;Дата съемки;Статус;Уверенность AI;GPS Координаты;Ссылка на фото\n';
-      const rows = (dbReports || []).map(r => {
+      const rows = dbReports.map(r => {
         const c = constructionsMap.get(r.construction_id) || {};
         const s = suppliersMap.get(r.supplier_id || c.supplier_id) || {};
         const dateStr = r.captured_at ? new Date(r.captured_at).toLocaleString('ru-RU') : '';

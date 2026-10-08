@@ -454,7 +454,104 @@ console.log('--- STARTING SDIP OOH SYSTEM TESTS ---');
   console.log("✓ All defect remediation regression checks passed");
 }
 
-console.log("--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (15/15) ---");
+// 16. Server-side data isolation (RBAC client reports filtering) test
+{
+  const { ReportController } = await import('../src/controllers/reportController.js');
+
+  const originalGetReports = databaseRepository.getReports;
+  const originalGetConstructions = databaseRepository.getConstructions;
+  const originalGetSuppliers = databaseRepository.getSuppliers;
+  const originalGetUserById = databaseRepository.getUserById;
+
+  databaseRepository.getConstructions = async () => [
+    { id: 'cst_01', code: 'BB-MOW-0104', side: 'Сторона А', type: 'Билборд', address_location: 'Ленинградский пр-кт', supplier_id: 'sup_01' },
+    { id: 'cst_02', code: 'SS-MOW-0042', side: 'Сторона А', type: 'Суперсайт', address_location: 'МКАД 68-й км', supplier_id: 'sup_02' }
+  ];
+  databaseRepository.getSuppliers = async () => [
+    { id: 'sup_01', name: 'Поставщик 1' },
+    { id: 'sup_02', name: 'Поставщик 2' }
+  ];
+  databaseRepository.getReports = async () => [
+    { id: 'rep_app_01', construction_id: 'cst_01', supplier_id: 'sup_01', status: 'APPROVED' },
+    { id: 'rep_pend_01', construction_id: 'cst_01', supplier_id: 'sup_01', status: 'PENDING' },
+    { id: 'rep_rej_01', construction_id: 'cst_01', supplier_id: 'sup_01', status: 'REJECTED' },
+    { id: 'rep_app_02', construction_id: 'cst_02', supplier_id: 'sup_02', status: 'APPROVED' }
+  ];
+
+  // Test admin / unrestricted role: sees all reports
+  databaseRepository.getUserById = async (id) => ({ id, role: 'admin' });
+  let adminRes = null;
+  await ReportController.getReports({ query: {}, auth: { userId: 'usr_admin_1' } }, {
+    json(data) { adminRes = data; }
+  });
+  assert.strictEqual(adminRes.success, true);
+  assert.strictEqual(adminRes.data.length, 4, 'Admin receives all 4 reports');
+
+  // Test client role: only receives APPROVED reports and tenant-isolated if supplier_id assigned
+  databaseRepository.getUserById = async (id) => ({ id, role: 'client', supplier_id: 'sup_01' });
+  let clientRes = null;
+  await ReportController.getReports({ query: {}, auth: { userId: 'usr_client_1' } }, {
+    json(data) { clientRes = data; }
+  });
+  assert.strictEqual(clientRes.success, true);
+  assert.strictEqual(clientRes.data.length, 1, 'Client receives only 1 tenant-scoped APPROVED report');
+  assert.strictEqual(clientRes.data[0].id, 'rep_app_01');
+  assert.strictEqual(clientRes.data[0].status, 'APPROVED');
+
+  // Test client role without supplier restriction: only receives APPROVED reports
+  databaseRepository.getUserById = async (id) => ({ id, role: 'client', supplier_id: null });
+  let clientGeneralRes = null;
+  await ReportController.getReports({ query: {}, auth: { userId: 'usr_client_2' } }, {
+    json(data) { clientGeneralRes = data; }
+  });
+  assert.strictEqual(clientGeneralRes.data.length, 2, 'Unscoped client receives both APPROVED reports only');
+  assert.ok(clientGeneralRes.data.every(r => r.status === 'APPROVED'));
+
+  // Test client role on getReportById: forbidden for PENDING / REJECTED or different supplier
+  databaseRepository.getUserById = async (id) => ({ id, role: 'client', supplier_id: 'sup_01' });
+
+  let reportDetailStatus = null;
+  let reportDetailJson = null;
+  const mockDetailRes = {
+    status(code) { reportDetailStatus = code; return this; },
+    json(data) { reportDetailJson = data; return this; }
+  };
+
+  // Client allowed to view approved report belonging to their supplier
+  reportDetailStatus = 200;
+  await ReportController.getReportById({ params: { id: 'rep_app_01' }, auth: { userId: 'usr_client_1' } }, mockDetailRes);
+  assert.strictEqual(reportDetailJson.success, true);
+  assert.strictEqual(reportDetailJson.data.id, 'rep_app_01');
+
+  // Client forbidden from viewing PENDING report
+  await ReportController.getReportById({ params: { id: 'rep_pend_01' }, auth: { userId: 'usr_client_1' } }, mockDetailRes);
+  assert.strictEqual(reportDetailStatus, 403, 'Client must get 403 on PENDING report');
+
+  // Client forbidden from viewing cross-tenant approved report
+  await ReportController.getReportById({ params: { id: 'rep_app_02' }, auth: { userId: 'usr_client_1' } }, mockDetailRes);
+  assert.strictEqual(reportDetailStatus, 403, 'Client must get 403 on cross-tenant report');
+
+  // Test client role on exportCSV: only includes APPROVED and tenant-isolated reports
+  let csvData = null;
+  const mockCsvRes = {
+    setHeader() {},
+    status(code) { return this; },
+    send(data) { csvData = data.toString('utf-8'); }
+  };
+  await ReportController.exportCSV({ query: {}, auth: { userId: 'usr_client_1' } }, mockCsvRes);
+  assert.ok(csvData.includes('rep_app_01'), 'CSV contains client approved report');
+  assert.ok(!csvData.includes('rep_pend_01'), 'CSV must not contain pending report');
+  assert.ok(!csvData.includes('rep_app_02'), 'CSV must not contain cross-tenant report');
+
+  // Restore mocks
+  databaseRepository.getReports = originalGetReports;
+  databaseRepository.getConstructions = originalGetConstructions;
+  databaseRepository.getSuppliers = originalGetSuppliers;
+  databaseRepository.getUserById = originalGetUserById;
+  console.log("✓ Server-side client data isolation & role-based filtering passed");
+}
+
+console.log("--- ALL SYSTEM TESTS PASSED SUCCESSFULLY (16/16) ---");
 
 
 
